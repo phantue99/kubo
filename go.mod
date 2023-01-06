@@ -249,8 +249,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
-replace (
-	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.11.0-82ac8b359
-)
+
+replace github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
 
 go 1.18
