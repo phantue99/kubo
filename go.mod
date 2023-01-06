@@ -250,7 +250,7 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 replace (
-	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap
+	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.11.0-82ac8b359
 )
 
 go 1.18
