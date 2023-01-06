@@ -91,6 +91,7 @@ require (
 	github.com/multiformats/go-multihash v0.2.1
 	github.com/opentracing/opentracing-go v1.2.0
 	github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58
+	github.com/phantue99/go-ds-aiozfs v0.0.0-20230106110719-3cf2c875f9f4
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.14.0
 	github.com/stretchr/testify v1.8.1

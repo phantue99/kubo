@@ -137,7 +137,7 @@ func DefaultDatastoreConfig() Datastore {
 		StorageGCWatermark: 90, // 90%
 		GCPeriod:           "1h",
 		BloomFilterSize:    0,
-		Spec:               flatfsSpec(),
+		Spec:               aiozfsSpec(),
 	}
 }
 
@@ -183,6 +183,34 @@ func flatfsSpec() map[string]interface{} {
 	}
 }
 
+func aiozfsSpec() map[string]interface{} {
+	return map[string]interface{}{
+		"type": "mount",
+		"mounts": []interface{}{
+			map[string]interface{}{
+				"mountpoint": "/blocks",
+				"type":       "measure",
+				"prefix":     "aiozfs.datastore",
+				"child": map[string]interface{}{
+					"type":      "aiozfs",
+					"path":      "blocks",
+					"sync":      true,
+					"shardFunc": "/repo/aiozfs/shard/v1/next-to-last/2",
+				},
+			},
+			map[string]interface{}{
+				"mountpoint": "/",
+				"type":       "measure",
+				"prefix":     "leveldb.datastore",
+				"child": map[string]interface{}{
+					"type":        "levelds",
+					"path":        "datastore",
+					"compression": "none",
+				},
+			},
+		},
+	}
+}
 // CreateIdentity initializes a new identity.
 func CreateIdentity(out io.Writer, opts []options.KeyGenerateOption) (Identity, error) {
 	// TODO guard higher up
