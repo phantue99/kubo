@@ -60,6 +60,8 @@ var CatCmd = &cmds.Command{
 			return err
 		}
 
+		req.Context = context.WithValue(req.Context, "cache", false)
+
 		readers, length, err := cat(req.Context, api, req.Arguments, int64(offset), int64(max))
 		if err != nil {
 			return err

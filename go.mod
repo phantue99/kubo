@@ -251,6 +251,9 @@ require (
 	lukechampine.com/blake3 v1.1.7 // indirect
 )
 
-replace github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
+replace (
+	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
+	github.com/ipfs/go-blockservice => github.com/phantue99/go-blockservice v0.0.0-20230112093859-51930d32a5a3
+)
 
 go 1.18

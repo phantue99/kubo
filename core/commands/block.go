@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -102,6 +103,8 @@ It takes a <cid>, and outputs the block to stdout.
 		if err != nil {
 			return err
 		}
+
+		req.Context = context.WithValue(req.Context, "cache", false)
 
 		r, err := api.Block().Get(req.Context, path.New(req.Arguments[0]))
 		if err != nil {

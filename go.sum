@@ -439,11 +439,6 @@ github.com/ipfs/go-block-format v0.0.1/go.mod h1:DK/YYcsSUIVAFNwo/KZCdIIbpN0ROH/
 github.com/ipfs/go-block-format v0.0.2/go.mod h1:AWR46JfpcObNfg3ok2JHDUfdiHRgWhJgCQF+KIgOPJY=
 github.com/ipfs/go-block-format v0.0.3 h1:r8t66QstRp/pd/or4dpnbVfXT5Gt7lOqRvC+/dDTpMc=
 github.com/ipfs/go-block-format v0.0.3/go.mod h1:4LmD4ZUw0mhO+JSKdpWwrzATiEfM7WWgQ8H5l6P8MVk=
-github.com/ipfs/go-blockservice v0.1.0/go.mod h1:hzmMScl1kXHg3M2BjTymbVPjv627N7sYcvYaKbop39M=
-github.com/ipfs/go-blockservice v0.2.1/go.mod h1:k6SiwmgyYgs4M/qt+ww6amPeUH9EISLRBnvUurKJhi8=
-github.com/ipfs/go-blockservice v0.3.0/go.mod h1:P5ppi8IHDC7O+pA0AlGTF09jruB2h+oP3wVVaZl8sfk=
-github.com/ipfs/go-blockservice v0.5.0 h1:B2mwhhhVQl2ntW2EIpaWPwSCxSuqr5fFA93Ms4bYLEY=
-github.com/ipfs/go-blockservice v0.5.0/go.mod h1:W6brZ5k20AehbmERplmERn8o2Ni3ZZubvAxaIUeaT6w=
 github.com/ipfs/go-cid v0.0.1/go.mod h1:GHWU/WuQdMPmIosc4Yn1bcCT7dSeX4lBafM7iqUPQvM=
 github.com/ipfs/go-cid v0.0.2/go.mod h1:GHWU/WuQdMPmIosc4Yn1bcCT7dSeX4lBafM7iqUPQvM=
 github.com/ipfs/go-cid v0.0.3/go.mod h1:GHWU/WuQdMPmIosc4Yn1bcCT7dSeX4lBafM7iqUPQvM=
@@ -533,7 +528,6 @@ github.com/ipfs/go-ipfs-provider v0.8.1 h1:qt670pYmcNH3BCjyXDgg07o2WsTRsOdMwYc25
 github.com/ipfs/go-ipfs-provider v0.8.1/go.mod h1:qCpwpoohIRVXvNzkygzsM3qdqP/sXlrogtA5I45tClc=
 github.com/ipfs/go-ipfs-redirects-file v0.1.1 h1:Io++k0Vf/wK+tfnhEh63Yte1oQK5VGT2hIEYpD0Rzx8=
 github.com/ipfs/go-ipfs-redirects-file v0.1.1/go.mod h1:tAwRjCV0RjLTjH8DR/AU7VYvfQECg+lpUy2Mdzv7gyk=
-github.com/ipfs/go-ipfs-routing v0.1.0/go.mod h1:hYoUkJLyAUKhF58tysKpids8RNDPO42BVMgK5dNsoqY=
 github.com/ipfs/go-ipfs-routing v0.2.1/go.mod h1:xiNNiwgjmLqPS1cimvAw6EyB9rkVDbiocA4yY+wRNLM=
 github.com/ipfs/go-ipfs-routing v0.3.0 h1:9W/W3N+g+y4ZDeffSgqhgo7BsBSJwPMcyssET9OWevc=
 github.com/ipfs/go-ipfs-routing v0.3.0/go.mod h1:dKqtTFIql7e1zYsEuWLyuOU+E0WJWW8JjbTPLParDWo=
@@ -975,6 +969,8 @@ github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 h1:1/WtZae0yGtPq+TI6+
 github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9/go.mod h1:x3N5drFsm2uilKKuuYo6LdyD8vZAW55sH/9w+pbo1sw=
 github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514 h1:YOIgb5mav4b+Uk08xFM3CvxvpeR0n/9yb/rSoGv8NXk=
 github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514/go.mod h1:05aE8H3XOU+LXpTedeAS0OZpcO1WFsj5niYQH9a1Tmk=
+github.com/phantue99/go-blockservice v0.0.0-20230112093859-51930d32a5a3 h1:Lx3BOy91H/KQXfRZbu9duYU0j7PbqqLYEQde1Zn+V4E=
+github.com/phantue99/go-blockservice v0.0.0-20230112093859-51930d32a5a3/go.mod h1:W6brZ5k20AehbmERplmERn8o2Ni3ZZubvAxaIUeaT6w=
 github.com/phantue99/go-ds-aiozfs v0.0.0-20230106110719-3cf2c875f9f4 h1:4905fXz/W3sZIfNskl7xl1GKa+wQ9I1/Mzda36rKLJY=
 github.com/phantue99/go-ds-aiozfs v0.0.0-20230106110719-3cf2c875f9f4/go.mod h1:g/+TmWADZhSMMMrmw94msTFUwHVXr3DnJ/lQHjRjf+Y=
 github.com/pierrec/lz4 v1.0.2-0.20190131084431-473cd7ce01a1/go.mod h1:3/3N9NVKO0jef7pBehbT1qWhCMrIgbYNnFAZCqQ5LRc=
