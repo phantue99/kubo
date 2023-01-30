@@ -15,6 +15,7 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
+	"github.com/ipfs/go-blockservice/tikv"
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -232,6 +233,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Warnf(`Running with --%s: All connections are UNENCRYPTED.
 		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
 	}
+	tikv.InitStore()
 
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
