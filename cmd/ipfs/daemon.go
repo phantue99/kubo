@@ -3,6 +3,7 @@ package main
 import (
 	"errors"
 	_ "expvar"
+	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -14,6 +15,7 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/ipfs/go-blockservice"
 
 	"github.com/ipfs/go-blockservice/tikv"
 	version "github.com/ipfs/kubo"
@@ -50,6 +52,7 @@ const (
 	initOptionKwd             = "init"
 	initConfigOptionKwd       = "init-config"
 	initProfileOptionKwd      = "init-profile"
+	initTikvStore             = "init-tikv"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
 	migrateKwd                = "migrate"
@@ -66,6 +69,7 @@ const (
 	routingOptionAutoKwd      = "auto"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedAPIAccessKwd  = "unrestricted-api"
+	uploaderEndpoint          = "uploader-endpoint"
 	writableKwd               = "writable"
 	enablePubSubKwd           = "enable-pubsub-experiment"
 	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
@@ -160,6 +164,7 @@ Headers.
 		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
 		cmds.StringOption(initConfigOptionKwd, "Path to existing configuration file to be loaded during --init"),
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
+		cmds.StringOption(initTikvStore, "Configuration tikv. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
@@ -167,6 +172,7 @@ Headers.
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
+		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint. See ipfs init --help for more"),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
@@ -233,7 +239,13 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		log.Warnf(`Running with --%s: All connections are UNENCRYPTED.
 		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
 	}
-	tikv.InitStore()
+
+	tikvStore, _ := req.Options[initTikvStore].(string)
+	if tikvStore != "" {
+		os.Args = append(os.Args, "-pd", tikvStore)
+		flag.Parse()
+		tikv.InitStore()
+	}
 
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
@@ -442,6 +454,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if agentVersionSuffixString != "" {
 		version.SetUserAgentSuffix(agentVersionSuffixString)
 	}
+
+	uploader, _ := req.Options[uploaderEndpoint].(string)
+	blockservice.InitUploader(uploader)
 
 	node, err := core.NewNode(req.Context, ncfg)
 	if err != nil {

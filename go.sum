@@ -986,8 +986,10 @@ github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 h1:1/WtZae0yGtPq+TI6+
 github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9/go.mod h1:x3N5drFsm2uilKKuuYo6LdyD8vZAW55sH/9w+pbo1sw=
 github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514 h1:YOIgb5mav4b+Uk08xFM3CvxvpeR0n/9yb/rSoGv8NXk=
 github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514/go.mod h1:05aE8H3XOU+LXpTedeAS0OZpcO1WFsj5niYQH9a1Tmk=
-github.com/phantue99/go-blockservice v0.0.0-20230130110040-4550b1678bcb h1:O6Noxikjlkyvg+Sz/1eaiJy44bjqGxFyfXrjE4wqAeM=
-github.com/phantue99/go-blockservice v0.0.0-20230130110040-4550b1678bcb/go.mod h1:ZAyfRxlshbzKHmkfdwDnrGNM8yOGDRBFVwgXA+F9seU=
+github.com/phantue99/go-blockservice v0.0.0-20230131043442-cd8ad602b34b h1:ivsBO2W7Ph+XLOxuB7lr33QXSoz90j3VS3cmt+baaxY=
+github.com/phantue99/go-blockservice v0.0.0-20230131043442-cd8ad602b34b/go.mod h1:ZAyfRxlshbzKHmkfdwDnrGNM8yOGDRBFVwgXA+F9seU=
+github.com/phantue99/go-blockservice v0.0.0-20230201035437-dcf528a16113 h1:dmqnGAfYwla87oQF5BKMc1maafgi+QUQdrT6ojflk9o=
+github.com/phantue99/go-blockservice v0.0.0-20230201035437-dcf528a16113/go.mod h1:ZAyfRxlshbzKHmkfdwDnrGNM8yOGDRBFVwgXA+F9seU=
 github.com/phantue99/go-ds-aiozfs v0.0.0-20230106110719-3cf2c875f9f4 h1:4905fXz/W3sZIfNskl7xl1GKa+wQ9I1/Mzda36rKLJY=
 github.com/phantue99/go-ds-aiozfs v0.0.0-20230106110719-3cf2c875f9f4/go.mod h1:g/+TmWADZhSMMMrmw94msTFUwHVXr3DnJ/lQHjRjf+Y=
 github.com/pierrec/lz4 v1.0.2-0.20190131084431-473cd7ce01a1/go.mod h1:3/3N9NVKO0jef7pBehbT1qWhCMrIgbYNnFAZCqQ5LRc=
