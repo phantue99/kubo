@@ -38,6 +38,8 @@ type Config struct {
 	Pinning      Pinning
 
 	Internal Internal // experimental/unstable options
+	Tikv Tikv
+	Uploader Uploader
 }
 
 const (

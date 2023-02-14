@@ -176,7 +176,9 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	if err != nil {
 		return "", err
 	}
-	cfg, err := config.InitWithIdentity(identity)
+	tikv := config.Tikv{}
+	uploader := config.Uploader{}
+	cfg, err := config.InitWithIdentity(identity, tikv, uploader)
 	if err != nil {
 		return "", err
 	}

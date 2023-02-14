@@ -17,11 +17,13 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
+	tikv := Tikv{}
+	uploader := Uploader{}
 
-	return InitWithIdentity(identity)
+	return InitWithIdentity(identity, tikv, uploader)
 }
 
-func InitWithIdentity(identity Identity) (*Config, error) {
+func InitWithIdentity(identity Identity, tikv Tikv, uploader Uploader) (*Config, error) {
 	bootstrapPeers, err := DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -89,6 +91,8 @@ func InitWithIdentity(identity Identity) (*Config, error) {
 			DownloadSources: []string{},
 			Keep:            "",
 		},
+		Tikv: tikv,
+		Uploader: uploader,
 	}
 
 	return conf, nil

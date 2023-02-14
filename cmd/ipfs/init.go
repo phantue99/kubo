@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"flag"
 
 	path "github.com/ipfs/go-path"
 	unixfs "github.com/ipfs/go-unixfs"
@@ -22,6 +23,8 @@ import (
 	files "github.com/ipfs/go-ipfs-files"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	config "github.com/ipfs/kubo/config"
+	"github.com/ipfs/go-blockservice/tikv"
+	"github.com/ipfs/go-blockservice"
 )
 
 const (
@@ -30,6 +33,8 @@ const (
 	bitsOptionName      = "bits"
 	emptyRepoOptionName = "empty-repo"
 	profileOptionName   = "profile"
+	tikvEp              = "tikv"
+	uploaderEndpoint    = "uploader-endpoint"
 )
 
 // nolint
@@ -63,6 +68,8 @@ environment variable:
 		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key."),
 		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
+		cmds.StringOption(tikvEp, "Configuration tikv endpoint"),
+		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -116,7 +123,25 @@ environment variable:
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+
+			tikvEndpoint, _ := req.Options[tikvEp].(string)
+			tikvCf := config.Tikv{
+				Endpoint: tikvEndpoint,
+			}
+
+			uploaderEndpoint, _ := req.Options[uploaderEndpoint].(string)
+			uploader := config.Uploader{
+				Endpoint: uploaderEndpoint,
+			}
+
+			if tikvEndpoint != "" {
+				os.Args = append(os.Args, "-pd", tikvEndpoint)
+				flag.Parse()
+				tikv.InitStore()
+			}
+
+			blockservice.InitUploader(uploaderEndpoint)
+			conf, err = config.InitWithIdentity(identity, tikvCf, uploader)
 			if err != nil {
 				return err
 			}

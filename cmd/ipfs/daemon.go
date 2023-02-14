@@ -52,7 +52,6 @@ const (
 	initOptionKwd             = "init"
 	initConfigOptionKwd       = "init-config"
 	initProfileOptionKwd      = "init-profile"
-	initTikvStore             = "init-tikv"
 	ipfsMountKwd              = "mount-ipfs"
 	ipnsMountKwd              = "mount-ipns"
 	migrateKwd                = "migrate"
@@ -69,7 +68,6 @@ const (
 	routingOptionAutoKwd      = "auto"
 	unencryptTransportKwd     = "disable-transport-encryption"
 	unrestrictedAPIAccessKwd  = "unrestricted-api"
-	uploaderEndpoint          = "uploader-endpoint"
 	writableKwd               = "writable"
 	enablePubSubKwd           = "enable-pubsub-experiment"
 	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
@@ -164,7 +162,6 @@ Headers.
 		cmds.BoolOption(initOptionKwd, "Initialize ipfs with default settings if not already initialized"),
 		cmds.StringOption(initConfigOptionKwd, "Path to existing configuration file to be loaded during --init"),
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
-		cmds.StringOption(initTikvStore, "Configuration tikv. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
 		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
@@ -240,13 +237,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		You will not be able to connect to regular encrypted networks.`, unencryptTransportKwd)
 	}
 
-	tikvStore, _ := req.Options[initTikvStore].(string)
-	if tikvStore != "" {
-		os.Args = append(os.Args, "-pd", tikvStore)
-		flag.Parse()
-		tikv.InitStore()
-	}
-
 	// first, whether user has provided the initialization flag. we may be
 	// running in an uninitialized state.
 	initialize, _ := req.Options[initOptionKwd].(bool)
@@ -268,7 +258,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+			tikv := config.Tikv{}
+			uploader := config.Uploader{}
+			conf, err = config.InitWithIdentity(identity, tikv, uploader)
 			if err != nil {
 				return err
 			}
@@ -384,6 +376,16 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	tikvStore := cfg.Tikv.Endpoint
+	if tikvStore != "" {
+		os.Args = append(os.Args, "-pd", tikvStore)
+		flag.Parse()
+		tikv.InitStore()
+	}
+
+	uploader := cfg.Uploader.Endpoint
+	blockservice.InitUploader(uploader)
+
 	if !psSet {
 		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
 	}
@@ -454,9 +456,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if agentVersionSuffixString != "" {
 		version.SetUserAgentSuffix(agentVersionSuffixString)
 	}
-
-	uploader, _ := req.Options[uploaderEndpoint].(string)
-	blockservice.InitUploader(uploader)
 
 	node, err := core.NewNode(req.Context, ncfg)
 	if err != nil {
