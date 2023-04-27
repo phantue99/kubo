@@ -4,12 +4,12 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"strings"
-	"flag"
 
 	path "github.com/ipfs/go-path"
 	unixfs "github.com/ipfs/go-unixfs"
@@ -19,12 +19,12 @@ import (
 	"github.com/ipfs/kubo/core/commands"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
+	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/go-blockservice/tikv"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
 	config "github.com/ipfs/kubo/config"
-	"github.com/ipfs/go-blockservice/tikv"
-	"github.com/ipfs/go-blockservice"
 )
 
 const (
@@ -34,6 +34,8 @@ const (
 	emptyRepoOptionName = "empty-repo"
 	profileOptionName   = "profile"
 	tikvEp              = "tikv"
+	psEp                = "pinning-service"
+	apiKey              = "api-key"
 	uploaderEndpoint    = "uploader-endpoint"
 )
 
@@ -69,6 +71,8 @@ environment variable:
 		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 		cmds.StringOption(tikvEp, "Configuration tikv endpoint"),
+		cmds.StringOption(psEp, "Configuration pinning service endpoint"),
+		cmds.StringOption(apiKey, "Configuration pinning service api key"),
 		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint"),
 
 		// TODO need to decide whether to expose the override as a file or a
@@ -125,23 +129,24 @@ environment variable:
 			}
 
 			tikvEndpoint, _ := req.Options[tikvEp].(string)
-			tikvCf := config.Tikv{
-				Endpoint: tikvEndpoint,
-			}
-
 			uploaderEndpoint, _ := req.Options[uploaderEndpoint].(string)
-			uploader := config.Uploader{
-				Endpoint: uploaderEndpoint,
+			pinningServiceEndpoint, _ := req.Options[psEp].(string)
+			blockserviceApiKey, _ := req.Options[apiKey].(string)
+			configPinningSerice := config.ConfigPinningSerice{
+				Tikv:               tikvEndpoint,
+				Uploader:           uploaderEndpoint,
+				PinningService:     pinningServiceEndpoint,
+				BlockserviceApiKey: blockserviceApiKey,
 			}
 
 			if tikvEndpoint != "" {
 				os.Args = append(os.Args, "-pd", tikvEndpoint)
 				flag.Parse()
-				tikv.InitStore()
+				tikv.InitStore(tikvEndpoint)
 			}
 
-			blockservice.InitUploader(uploaderEndpoint)
-			conf, err = config.InitWithIdentity(identity, tikvCf, uploader)
+			blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey)
+			conf, err = config.InitWithIdentity(identity, configPinningSerice)
 			if err != nil {
 				return err
 			}

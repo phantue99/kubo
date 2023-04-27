@@ -51,6 +51,7 @@ type AddPinOutput struct {
 const (
 	pinRecursiveOptionName = "recursive"
 	pinProgressOptionName  = "progress"
+	userIDOptionName       = "userid"
 )
 
 var addPinCmd = &cmds.Command{
@@ -65,6 +66,7 @@ var addPinCmd = &cmds.Command{
 	Options: []cmds.Option{
 		cmds.BoolOption(pinRecursiveOptionName, "r", "Recursively pin the object linked to by the specified object(s).").WithDefault(true),
 		cmds.BoolOption(pinProgressOptionName, "Show progress"),
+		cmds.StringOption(userIDOptionName, "u", "User UUID string"),
 	},
 	Type: AddPinOutput{},
 	Run: func(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
@@ -76,6 +78,9 @@ var addPinCmd = &cmds.Command{
 		// set recursive flag
 		recursive, _ := req.Options[pinRecursiveOptionName].(bool)
 		showProgress, _ := req.Options[pinProgressOptionName].(bool)
+		userID, _ := req.Options[userIDOptionName].(string)
+		
+		req.Context = context.WithValue(req.Context, "userID", userID)
 
 		if err := req.ParseBodyArgs(); err != nil {
 			return err

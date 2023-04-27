@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,8 @@ import (
 )
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+	userID, _ := req.Options[userIDOptionName].(string)
+	req.Context = context.WithValue(req.Context, "userID", userID)
 
 	node, err := cmdenv.GetNode(env)
 	if err != nil {
@@ -89,19 +92,19 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 
 			ret := RootMeta{Cid: c}
 
-			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if nd, err := ipldlegacy.DecodeNode(req.Context, block); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Flush(req.Context); err != nil {
-				ret.PinErrorMsg = err.Error()
-			}
+			// if block, err := node.Blockstore.Get(req.Context, c); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// } else if nd, err := ipldlegacy.DecodeNode(req.Context, block); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// } else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// } else if err := node.Pinning.Flush(req.Context); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// }
 
-			if ret.PinErrorMsg != "" {
-				failedPins++
-			}
+			// if ret.PinErrorMsg != "" {
+			// 	failedPins++
+			// }
 
 			if err := res.Emit(&CarImportOutput{Root: &ret}); err != nil {
 				return err

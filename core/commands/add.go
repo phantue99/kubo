@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -39,6 +40,7 @@ const (
 	wrapOptionName        = "wrap-with-directory"
 	onlyHashOptionName    = "only-hash"
 	chunkerOptionName     = "chunker"
+	userIDOptionName      = "userid"
 	pinOptionName         = "pin"
 	rawLeavesOptionName   = "raw-leaves"
 	noCopyOptionName      = "nocopy"
@@ -155,6 +157,7 @@ See 'dag export' and 'dag import' for more information.
 		cmds.BoolOption(onlyHashOptionName, "n", "Only chunk and hash - do not write to disk."),
 		cmds.BoolOption(wrapOptionName, "w", "Wrap files with a directory object."),
 		cmds.StringOption(chunkerOptionName, "s", "Chunking algorithm, size-[bytes], rabin-[min]-[avg]-[max] or buzhash").WithDefault("size-262144"),
+		cmds.StringOption(userIDOptionName, "u", "User UUID string"),
 		cmds.BoolOption(rawLeavesOptionName, "Use raw blocks for leaf nodes."),
 		cmds.BoolOption(noCopyOptionName, "Add the file using filestore. Implies raw-leaves. (experimental)"),
 		cmds.BoolOption(fstoreCacheOptionName, "Check the filestore for pre-existing blocks. (experimental)"),
@@ -196,6 +199,7 @@ See 'dag export' and 'dag import' for more information.
 		hash, _ := req.Options[onlyHashOptionName].(bool)
 		silent, _ := req.Options[silentOptionName].(bool)
 		chunker, _ := req.Options[chunkerOptionName].(string)
+		userID, _ := req.Options[userIDOptionName].(string)
 		dopin, _ := req.Options[pinOptionName].(bool)
 		rawblks, rbset := req.Options[rawLeavesOptionName].(bool)
 		nocopy, _ := req.Options[noCopyOptionName].(bool)
@@ -239,6 +243,7 @@ See 'dag export' and 'dag import' for more information.
 			options.Unixfs.Progress(progress),
 			options.Unixfs.Silent(silent),
 		}
+		req.Context = context.WithValue(req.Context, "userID", userID)
 
 		if cidVerSet {
 			opts = append(opts, options.Unixfs.CidVersion(cidVer))

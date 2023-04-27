@@ -258,9 +258,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			if err != nil {
 				return err
 			}
-			tikv := config.Tikv{}
-			uploader := config.Uploader{}
-			conf, err = config.InitWithIdentity(identity, tikv, uploader)
+			configPinningSerice := config.ConfigPinningSerice{}
+			conf, err = config.InitWithIdentity(identity, configPinningSerice)
 			if err != nil {
 				return err
 			}
@@ -376,15 +375,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	tikvStore := cfg.Tikv.Endpoint
+	tikvStore := cfg.ConfigPinningSerice.Tikv
 	if tikvStore != "" {
 		os.Args = append(os.Args, "-pd", tikvStore)
 		flag.Parse()
-		tikv.InitStore()
+		tikv.InitStore(tikvStore)
 	}
 
-	uploader := cfg.Uploader.Endpoint
-	blockservice.InitUploader(uploader)
+	blockservice.InitBlockService(cfg.ConfigPinningSerice.Uploader, cfg.ConfigPinningSerice.PinningService, cfg.ConfigPinningSerice.BlockserviceApiKey)
 
 	if !psSet {
 		pubsub = cfg.Pubsub.Enabled.WithDefault(false)
