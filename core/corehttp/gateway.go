@@ -18,8 +18,11 @@ import (
 )
 
 type GatewayConfig struct {
-	Headers  map[string][]string
-	Writable bool
+	Headers            map[string][]string
+	Writable           bool
+	DedicatedGateway   bool
+	PinningService     string
+	BlockserviceApiKey string
 }
 
 // NodeAPI defines the minimal set of API services required by a gateway handler
@@ -82,8 +85,11 @@ func GatewayOption(writable bool, paths ...string) ServeOption {
 		}
 
 		gateway := NewGatewayHandler(GatewayConfig{
-			Headers:  headers,
-			Writable: writable,
+			Headers:            headers,
+			Writable:           writable,
+			DedicatedGateway:   cfg.ConfigPinningSerice.DedicatedGateway,
+			PinningService:     cfg.ConfigPinningSerice.PinningService,
+			BlockserviceApiKey: cfg.ConfigPinningSerice.BlockserviceApiKey,
 		}, api, offlineAPI)
 
 		gateway = otelhttp.NewHandler(gateway, "Gateway.Request")

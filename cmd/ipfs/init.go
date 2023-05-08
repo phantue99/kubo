@@ -32,6 +32,7 @@ const (
 	algorithmOptionName = "algorithm"
 	bitsOptionName      = "bits"
 	emptyRepoOptionName = "empty-repo"
+	dedicatedGateway    = "dedicated-gateway"
 	profileOptionName   = "profile"
 	tikvEp              = "tikv"
 	psEp                = "pinning-service"
@@ -69,6 +70,7 @@ environment variable:
 		cmds.StringOption(algorithmOptionName, "a", "Cryptographic algorithm to use for key generation.").WithDefault(algorithmDefault),
 		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key."),
 		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
+		cmds.BoolOption(dedicatedGateway, "Dedicated gateway"),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
 		cmds.StringOption(tikvEp, "Configuration tikv endpoint"),
 		cmds.StringOption(psEp, "Configuration pinning service endpoint"),
@@ -132,11 +134,13 @@ environment variable:
 			uploaderEndpoint, _ := req.Options[uploaderEndpoint].(string)
 			pinningServiceEndpoint, _ := req.Options[psEp].(string)
 			blockserviceApiKey, _ := req.Options[apiKey].(string)
+			dGw, _ := req.Options[dedicatedGateway].(bool)
 			configPinningSerice := config.ConfigPinningSerice{
 				Tikv:               tikvEndpoint,
 				Uploader:           uploaderEndpoint,
 				PinningService:     pinningServiceEndpoint,
 				BlockserviceApiKey: blockserviceApiKey,
+				DedicatedGateway:   dGw,
 			}
 
 			if tikvEndpoint != "" {

@@ -1,6 +1,7 @@
 package corehttp
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"html/template"
@@ -402,6 +403,13 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		if etagMatch(inm, cidEtag, dirEtag) {
 			// Finish early if client already has a matching Etag
 			w.WriteHeader(http.StatusNotModified)
+			return
+		}
+	}
+	if i.config.DedicatedGateway {
+		mh := resolvedPath.Cid().Hash()
+		if err := i.getDedicatedGatewayAccess(mh.HexString()); err != nil {
+			webRequestError(w, err)
 			return
 		}
 	}
@@ -1102,5 +1110,22 @@ func (i *gatewayHandler) setCommonHeaders(w http.ResponseWriter, r *http.Request
 		return newRequestError("error while resolving X-Ipfs-Roots", err, http.StatusInternalServerError)
 	}
 
+	return nil
+}
+
+func (i *gatewayHandler) getDedicatedGatewayAccess(hash string) *requestError {
+	apiUrl := fmt.Sprintf("%s/api/dedicatedGateways/%s", i.config.PinningService, hash)
+	client := &http.Client{}
+	req, _ := http.NewRequest("GET", apiUrl, bytes.NewBuffer(nil))
+	req.Header.Set("blockservice-API-Key", i.config.BlockserviceApiKey)
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return newRequestError("dedicatedGateways", err, http.StatusBadRequest)
+	}
+	if resp.StatusCode != 200 {
+		err := fmt.Errorf("No users have subscribed to this hash yet.")
+		return newRequestError("dedicatedGateways", err, resp.StatusCode)
+	}
 	return nil
 }
