@@ -272,7 +272,7 @@ require (
 
 replace (
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
-	github.com/ipfs/go-blockservice => github.com/phantue99/go-blockservice v0.0.0-20230508034802-930028b003f7
+	github.com/ipfs/go-blockservice => github.com/phantue99/go-blockservice v0.0.0-20230526033855-897ae78e2748
 )
 
 go 1.18

@@ -382,7 +382,10 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		tikv.InitStore(tikvStore)
 	}
 
-	blockservice.InitBlockService(cfg.ConfigPinningSerice.Uploader, cfg.ConfigPinningSerice.PinningService, cfg.ConfigPinningSerice.BlockserviceApiKey)
+	if err := blockservice.InitBlockService(cfg.ConfigPinningSerice.Uploader, cfg.ConfigPinningSerice.PinningService, cfg.ConfigPinningSerice.BlockserviceApiKey, cfg.ConfigPinningSerice.DedicatedGateway); err != nil {
+		fmt.Printf("InitBlockService  %s\n", err)
+		return errors.New("InitBlockService")
+	}
 
 	if !psSet {
 		pubsub = cfg.Pubsub.Enabled.WithDefault(false)

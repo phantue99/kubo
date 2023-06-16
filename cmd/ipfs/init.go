@@ -149,7 +149,10 @@ environment variable:
 				tikv.InitStore(tikvEndpoint)
 			}
 
-			blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey)
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey, dGw); err != nil {
+				fmt.Printf("InitBlockService  %s\n", err)
+				return errors.New("InitBlockService")
+			}
 			conf, err = config.InitWithIdentity(identity, configPinningSerice)
 			if err != nil {
 				return err

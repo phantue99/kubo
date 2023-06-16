@@ -407,7 +407,7 @@ func (i *gatewayHandler) getOrHeadHandler(w http.ResponseWriter, r *http.Request
 		}
 	}
 	if i.config.DedicatedGateway {
-		mh := resolvedPath.Cid().Hash()
+		mh := resolvedPath.Root().Hash()
 		if err := i.getDedicatedGatewayAccess(mh.HexString()); err != nil {
 			webRequestError(w, err)
 			return
