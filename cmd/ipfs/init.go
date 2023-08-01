@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"flag"
 	"fmt"
 	"io"
 	"os"
@@ -20,7 +19,6 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
 	"github.com/ipfs/go-blockservice"
-	"github.com/ipfs/go-blockservice/tikv"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	files "github.com/ipfs/go-ipfs-files"
 	options "github.com/ipfs/interface-go-ipfs-core/options"
@@ -34,7 +32,6 @@ const (
 	emptyRepoOptionName = "empty-repo"
 	dedicatedGateway    = "dedicated-gateway"
 	profileOptionName   = "profile"
-	tikvEp              = "tikv"
 	psEp                = "pinning-service"
 	apiKey              = "api-key"
 	uploaderEndpoint    = "uploader-endpoint"
@@ -72,7 +69,6 @@ environment variable:
 		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage."),
 		cmds.BoolOption(dedicatedGateway, "Dedicated gateway"),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
-		cmds.StringOption(tikvEp, "Configuration tikv endpoint"),
 		cmds.StringOption(psEp, "Configuration pinning service endpoint"),
 		cmds.StringOption(apiKey, "Configuration pinning service api key"),
 		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint"),
@@ -130,23 +126,15 @@ environment variable:
 				return err
 			}
 
-			tikvEndpoint, _ := req.Options[tikvEp].(string)
 			uploaderEndpoint, _ := req.Options[uploaderEndpoint].(string)
 			pinningServiceEndpoint, _ := req.Options[psEp].(string)
 			blockserviceApiKey, _ := req.Options[apiKey].(string)
 			dGw, _ := req.Options[dedicatedGateway].(bool)
 			configPinningSerice := config.ConfigPinningSerice{
-				Tikv:               tikvEndpoint,
 				Uploader:           uploaderEndpoint,
 				PinningService:     pinningServiceEndpoint,
 				BlockserviceApiKey: blockserviceApiKey,
 				DedicatedGateway:   dGw,
-			}
-
-			if tikvEndpoint != "" {
-				os.Args = append(os.Args, "-pd", tikvEndpoint)
-				flag.Parse()
-				tikv.InitStore(tikvEndpoint)
 			}
 
 			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey, dGw); err != nil {

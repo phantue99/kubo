@@ -3,7 +3,6 @@ package main
 import (
 	"errors"
 	_ "expvar"
-	"flag"
 	"fmt"
 	"net"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/ipfs/go-blockservice"
 
-	"github.com/ipfs/go-blockservice/tikv"
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -373,13 +371,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	cfg, err := repo.Config()
 	if err != nil {
 		return err
-	}
-
-	tikvStore := cfg.ConfigPinningSerice.Tikv
-	if tikvStore != "" {
-		os.Args = append(os.Args, "-pd", tikvStore)
-		flag.Parse()
-		tikv.InitStore(tikvStore)
 	}
 
 	if err := blockservice.InitBlockService(cfg.ConfigPinningSerice.Uploader, cfg.ConfigPinningSerice.PinningService, cfg.ConfigPinningSerice.BlockserviceApiKey, cfg.ConfigPinningSerice.DedicatedGateway); err != nil {
