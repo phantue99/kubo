@@ -8,10 +8,10 @@ import (
 	"os"
 	"path/filepath"
 
-	files "github.com/ipfs/go-ipfs-files"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	"github.com/ipfs/interface-go-ipfs-core/options"
-	ipath "github.com/ipfs/interface-go-ipfs-core/path"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	"github.com/ipfs/boxo/coreiface/options"
+	"github.com/ipfs/boxo/files"
+	"github.com/ipfs/boxo/path"
 	"github.com/ipfs/kubo/core"
 	"github.com/ipfs/kubo/core/coreapi"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
@@ -19,7 +19,7 @@ import (
 	"github.com/libp2p/go-libp2p/core/peer"
 )
 
-// addMigrations adds any migration downloaded by the fetcher to the IPFS node
+// addMigrations adds any migration downloaded by the fetcher to the IPFS node.
 func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.Fetcher, pin bool) error {
 	var fetchers []migrations.Fetcher
 	if mf, ok := fetcher.(*migrations.MultiFetcher); ok {
@@ -63,7 +63,7 @@ func addMigrations(ctx context.Context, node *core.IpfsNode, fetcher migrations.
 	return nil
 }
 
-// addMigrationFiles adds the files at paths to IPFS, optionally pinning them
+// addMigrationFiles adds the files at paths to IPFS, optionally pinning them.
 func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string, pin bool) error {
 	if len(paths) == 0 {
 		return nil
@@ -98,7 +98,7 @@ func addMigrationFiles(ctx context.Context, node *core.IpfsNode, paths []string,
 
 // addMigrationPaths adds the files at paths to IPFS, optionally pinning
 // them. This is done after connecting to the peer.
-func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.AddrInfo, paths []ipath.Path, pin bool) error {
+func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.AddrInfo, paths []path.Path, pin bool) error {
 	if len(paths) == 0 {
 		return errors.New("nothing downloaded by ipfs fetcher")
 	}
@@ -142,7 +142,7 @@ func addMigrationPaths(ctx context.Context, node *core.IpfsNode, peerInfo peer.A
 	return nil
 }
 
-func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath ipath.Path) error {
+func ipfsGet(ctx context.Context, ufs coreiface.UnixfsAPI, ipfsPath path.Path) error {
 	nd, err := ufs.Get(ctx, ipfsPath)
 	if err != nil {
 		return err

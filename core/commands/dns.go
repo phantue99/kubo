@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"io"
 
-	namesys "github.com/ipfs/go-namesys"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
+	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	namesys "github.com/ipfs/boxo/namesys"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 	ncmd "github.com/ipfs/kubo/core/commands/name"
 
@@ -56,11 +56,11 @@ It will work across multiple DNSLinks and IPNS keys.
 		if err != nil && (recursive || err != namesys.ErrResolveRecursion) {
 			return err
 		}
-		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: output})
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: output.String()})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *ncmd.ResolvedPath) error {
-			fmt.Fprintln(w, cmdenv.EscNonPrint(out.Path.String()))
+			fmt.Fprintln(w, cmdenv.EscNonPrint(out.Path))
 			return nil
 		}),
 	},

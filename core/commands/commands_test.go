@@ -25,6 +25,7 @@ func TestROCommands(t *testing.T) {
 		"/commands/completion",
 		"/commands/completion/bash",
 		"/commands/completion/fish",
+		"/commands/completion/zsh",
 		"/dag",
 		"/dag/get",
 		"/dag/resolve",
@@ -71,6 +72,7 @@ func TestROCommands(t *testing.T) {
 		}
 	}
 }
+
 func TestCommands(t *testing.T) {
 	list := []string{
 		"/add",
@@ -101,6 +103,7 @@ func TestCommands(t *testing.T) {
 		"/commands/completion",
 		"/commands/completion/bash",
 		"/commands/completion/fish",
+		"/commands/completion/zsh",
 		"/config",
 		"/config/edit",
 		"/config/profile",
@@ -173,6 +176,7 @@ func TestCommands(t *testing.T) {
 		"/multibase/transcode",
 		"/multibase/list",
 		"/name",
+		"/name/inspect",
 		"/name/publish",
 		"/name/pubsub",
 		"/name/pubsub/cancel",
@@ -247,13 +251,12 @@ func TestCommands(t *testing.T) {
 		"/swarm/filters",
 		"/swarm/filters/add",
 		"/swarm/filters/rm",
-		"/swarm/limit",
 		"/swarm/peers",
 		"/swarm/peering",
 		"/swarm/peering/add",
 		"/swarm/peering/ls",
 		"/swarm/peering/rm",
-		"/swarm/stats",
+		"/swarm/resources",
 		"/tar",
 		"/tar/add",
 		"/tar/cat",

@@ -7,20 +7,20 @@ import (
 	"strings"
 	"time"
 
-	namesys "github.com/ipfs/go-namesys"
+	namesys "github.com/ipfs/boxo/namesys"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
 
+	options "github.com/ipfs/boxo/coreiface/options"
+	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	"github.com/ipfs/boxo/path"
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	logging "github.com/ipfs/go-log"
-	path "github.com/ipfs/go-path"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
 )
 
 var log = logging.Logger("core/commands/ipns")
 
 type ResolvedPath struct {
-	Path path.Path
+	Path string
 }
 
 const (
@@ -93,7 +93,7 @@ Resolve the value of a dnslink:
 			if err != nil {
 				return err
 			}
-			name = self.ID().Pretty()
+			name = self.ID().String()
 		} else {
 			name = req.Arguments[0]
 		}
@@ -134,7 +134,12 @@ Resolve the value of a dnslink:
 				return err
 			}
 
-			return cmds.EmitOnce(res, &ResolvedPath{path.FromString(output.String())})
+			pth, err := path.NewPath(output.String())
+			if err != nil {
+				return err
+			}
+
+			return cmds.EmitOnce(res, &ResolvedPath{pth.String()})
 		}
 
 		output, err := api.Name().Search(req.Context, name, opts...)
@@ -146,7 +151,7 @@ Resolve the value of a dnslink:
 			if v.Err != nil && (recursive || v.Err != namesys.ErrResolveRecursion) {
 				return v.Err
 			}
-			if err := res.Emit(&ResolvedPath{path.FromString(v.Path.String())}); err != nil {
+			if err := res.Emit(&ResolvedPath{v.Path.String()}); err != nil {
 				return err
 			}
 

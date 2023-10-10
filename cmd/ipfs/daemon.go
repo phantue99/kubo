@@ -15,6 +15,9 @@ import (
 
 	multierror "github.com/hashicorp/go-multierror"
 
+	options "github.com/ipfs/boxo/coreiface/options"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	mprome "github.com/ipfs/go-metrics-prometheus"
 	version "github.com/ipfs/kubo"
 	utilmain "github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
@@ -30,13 +33,12 @@ import (
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations"
 	"github.com/ipfs/kubo/repo/fsrepo/migrations/ipfsfetcher"
-	pnet "github.com/libp2p/go-libp2p/core/pnet"
-	sockets "github.com/libp2p/go-socket-activation"
-
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	mprome "github.com/ipfs/go-metrics-prometheus"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
 	goprocess "github.com/jbenet/goprocess"
+	p2pcrypto "github.com/libp2p/go-libp2p/core/crypto"
+	pnet "github.com/libp2p/go-libp2p/core/pnet"
+	"github.com/libp2p/go-libp2p/core/protocol"
+	p2phttp "github.com/libp2p/go-libp2p/p2p/http"
+	sockets "github.com/libp2p/go-socket-activation"
 	ma "github.com/multiformats/go-multiaddr"
 	manet "github.com/multiformats/go-multiaddr/net"
 	prometheus "github.com/prometheus/client_golang/prometheus"
@@ -44,34 +46,35 @@ import (
 )
 
 const (
-	adjustFDLimitKwd          = "manage-fdlimit"
-	enableGCKwd               = "enable-gc"
-	initOptionKwd             = "init"
-	initConfigOptionKwd       = "init-config"
-	initProfileOptionKwd      = "init-profile"
-	ipfsMountKwd              = "mount-ipfs"
-	ipnsMountKwd              = "mount-ipns"
-	migrateKwd                = "migrate"
-	mountKwd                  = "mount"
-	offlineKwd                = "offline" // global option
-	routingOptionKwd          = "routing"
-	routingOptionSupernodeKwd = "supernode"
-	routingOptionDHTClientKwd = "dhtclient"
-	routingOptionDHTKwd       = "dht"
-	routingOptionDHTServerKwd = "dhtserver"
-	routingOptionNoneKwd      = "none"
-	routingOptionCustomKwd    = "custom"
-	routingOptionDefaultKwd   = "default"
-	routingOptionAutoKwd      = "auto"
-	unencryptTransportKwd     = "disable-transport-encryption"
-	unrestrictedAPIAccessKwd  = "unrestricted-api"
-	writableKwd               = "writable"
-	enablePubSubKwd           = "enable-pubsub-experiment"
-	enableIPNSPubSubKwd       = "enable-namesys-pubsub"
-	enableMultiplexKwd        = "enable-mplex-experiment"
-	agentVersionSuffix        = "agent-version-suffix"
+	adjustFDLimitKwd           = "manage-fdlimit"
+	enableGCKwd                = "enable-gc"
+	initOptionKwd              = "init"
+	initConfigOptionKwd        = "init-config"
+	initProfileOptionKwd       = "init-profile"
+	ipfsMountKwd               = "mount-ipfs"
+	ipnsMountKwd               = "mount-ipns"
+	migrateKwd                 = "migrate"
+	mountKwd                   = "mount"
+	offlineKwd                 = "offline" // global option
+	routingOptionKwd           = "routing"
+	routingOptionSupernodeKwd  = "supernode"
+	routingOptionDHTClientKwd  = "dhtclient"
+	routingOptionDHTKwd        = "dht"
+	routingOptionDHTServerKwd  = "dhtserver"
+	routingOptionNoneKwd       = "none"
+	routingOptionCustomKwd     = "custom"
+	routingOptionDefaultKwd    = "default"
+	routingOptionAutoKwd       = "auto"
+	routingOptionAutoClientKwd = "autoclient"
+	unencryptTransportKwd      = "disable-transport-encryption"
+	unrestrictedAPIAccessKwd   = "unrestricted-api"
+	writableKwd                = "writable"
+	enablePubSubKwd            = "enable-pubsub-experiment"
+	enableIPNSPubSubKwd        = "enable-namesys-pubsub"
+	enableMultiplexKwd         = "enable-mplex-experiment"
+	agentVersionSuffix         = "agent-version-suffix"
 	// apiAddrKwd    = "address-api"
-	// swarmAddrKwd  = "address-swarm"
+	// swarmAddrKwd  = "address-swarm".
 )
 
 var daemonCmd = &cmds.Command{
@@ -161,7 +164,7 @@ Headers.
 		cmds.StringOption(initProfileOptionKwd, "Configuration profiles to apply for --init. See ipfs init --help for more"),
 		cmds.StringOption(routingOptionKwd, "Overrides the routing option").WithDefault(routingOptionDefaultKwd),
 		cmds.BoolOption(mountKwd, "Mounts IPFS to the filesystem using FUSE (experimental)"),
-		cmds.BoolOption(writableKwd, "Enable writing objects (with POST, PUT and DELETE)"),
+		cmds.BoolOption(writableKwd, "Enable legacy Gateway.Writable (REMOVED)"),
 		cmds.StringOption(ipfsMountKwd, "Path to the mountpoint for IPFS (if using --mount). Defaults to config setting."),
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
@@ -169,7 +172,7 @@ Headers.
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
-		cmds.BoolOption(enablePubSubKwd, "Enable experimental pubsub feature. Overrides Pubsub.Enabled config."),
+		cmds.BoolOption(enablePubSubKwd, "DEPRECATED"),
 		cmds.BoolOption(enableIPNSPubSubKwd, "Enable IPNS over pubsub. Implicitly enables pubsub, overrides Ipns.UsePubsub config."),
 		cmds.BoolOption(enableMultiplexKwd, "DEPRECATED"),
 		cmds.StringOption(agentVersionSuffix, "Optional suffix to the AgentVersion presented by `ipfs id` and also advertised through BitSwap."),
@@ -387,7 +390,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			"pubsub": pubsub,
 			"ipnsps": ipnsps,
 		},
-		//TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
+		// TODO(Kubuxu): refactor Online vs Offline by adding Permanent vs Ephemeral
 	}
 
 	routingOption, _ := req.Options[routingOptionKwd].(string)
@@ -411,11 +414,9 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionSupernodeKwd:
 		return errors.New("supernode routing was never fully implemented and has been removed")
 	case routingOptionDefaultKwd, routingOptionAutoKwd:
-		ncfg.Routing = libp2p.ConstructDefaultRouting(
-			cfg.Identity.PeerID,
-			cfg.Addresses.Swarm,
-			cfg.Identity.PrivKey,
-		)
+		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTOption)
+	case routingOptionAutoClientKwd:
+		ncfg.Routing = libp2p.ConstructDefaultRouting(cfg, libp2p.DHTClientOption)
 	case routingOptionDHTClientKwd:
 		ncfg.Routing = libp2p.DHTClientOption
 	case routingOptionDHTKwd:
@@ -425,11 +426,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	case routingOptionNoneKwd:
 		ncfg.Routing = libp2p.NilRouterOption
 	case routingOptionCustomKwd:
+		if cfg.Routing.AcceleratedDHTClient {
+			return fmt.Errorf("Routing.AcceleratedDHTClient option is set even tho Routing.Type is custom, using custom .AcceleratedDHTClient needs to be set on DHT routers individually")
+		}
 		ncfg.Routing = libp2p.ConstructDelegatedRouting(
 			cfg.Routing.Routers,
 			cfg.Routing.Methods,
 			cfg.Identity.PeerID,
-			cfg.Addresses.Swarm,
+			cfg.Addresses,
 			cfg.Identity.PrivKey,
 		)
 	default:
@@ -458,6 +462,22 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	}
 
 	printSwarmAddrs(node)
+
+	if node.PrivateKey.Type() == p2pcrypto.RSA {
+		fmt.Print(`
+Warning: You are using an RSA Peer ID, which was replaced by Ed25519
+as the default recommended in Kubo since September 2020. Signing with
+RSA Peer IDs is more CPU-intensive than with other key types.
+It is recommended that you change your public key type to ed25519
+by using the following command:
+
+  ipfs key rotate -o rsa-key-backup -t ed25519
+
+After changing your key type, restart your node for the changes to
+take effect.
+
+`)
+	}
 
 	defer func() {
 		// We wait for the node to close first, as the node has children
@@ -532,8 +552,14 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
+	// add trustless gateway over libp2p
+	p2pGwErrc, err := serveTrustlessGatewayOverLibp2p(cctx)
+	if err != nil {
+		return err
+	}
+
 	// Add ipfs version info to prometheus metrics
-	var ipfsInfoMetric = promauto.NewGaugeVec(prometheus.GaugeOpts{
+	ipfsInfoMetric := promauto.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "ipfs_info",
 		Help: "IPFS version information.",
 	}, []string{"version", "commit"})
@@ -588,7 +614,6 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 				log.Error("failed to bootstrap (no peers found): consider updating Bootstrap or Peering section of your config")
 			}
 		})
-
 	}
 
 	// Hard deprecation notice if someone still uses IPFS_REUSEPORT
@@ -599,7 +624,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	// collect long-running errors and block for shutdown
 	// TODO(cryptix): our fuse currently doesn't follow this pattern for graceful shutdown
 	var errs error
-	for err := range merge(apiErrc, gwErrc, gcErrc) {
+	for err := range merge(apiErrc, gwErrc, gcErrc, p2pGwErrc) {
 		if err != nil {
 			errs = multierror.Append(errs, err)
 		}
@@ -608,7 +633,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	return errs
 }
 
-// serveHTTPApi collects options, creates listener, prints status message and starts serving requests
+// serveHTTPApi collects options, creates listener, prints status message and starts serving requests.
 func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error) {
 	cfg, err := cctx.GetConfig()
 	if err != nil {
@@ -653,7 +678,7 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 
 	for _, listener := range listeners {
 		// we might have listened to /tcp/0 - let's see what we are listing on
-		fmt.Printf("API server listening on %s\n", listener.Multiaddr())
+		fmt.Printf("RPC API server listening on %s\n", listener.Multiaddr())
 		// Browsers require TCP.
 		switch listener.Addr().Network() {
 		case "tcp", "tcp4", "tcp6":
@@ -666,12 +691,12 @@ func serveHTTPApi(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error
 	// only the webui objects are allowed.
 	// if you know what you're doing, go ahead and pass --unrestricted-api.
 	unrestricted, _ := req.Options[unrestrictedAPIAccessKwd].(bool)
-	gatewayOpt := corehttp.GatewayOption(false, corehttp.WebUIPaths...)
+	gatewayOpt := corehttp.GatewayOption(corehttp.WebUIPaths...)
 	if unrestricted {
-		gatewayOpt = corehttp.GatewayOption(true, "/ipfs", "/ipns")
+		gatewayOpt = corehttp.GatewayOption("/ipfs", "/ipns")
 	}
 
-	var opts = []corehttp.ServeOption{
+	opts := []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("api"),
 		corehttp.MetricsOpenCensusCollectionOption(),
 		corehttp.MetricsOpenCensusDefaultPrometheusRegistry(),
@@ -733,7 +758,7 @@ func rewriteMaddrToUseLocalhostIfItsAny(maddr ma.Multiaddr) ma.Multiaddr {
 	}
 }
 
-// printSwarmAddrs prints the addresses of the host
+// printSwarmAddrs prints the addresses of the host.
 func printSwarmAddrs(node *core.IpfsNode) {
 	if !node.IsOnline {
 		fmt.Println("Swarm not listening, running in offline mode.")
@@ -762,10 +787,9 @@ func printSwarmAddrs(node *core.IpfsNode) {
 	for _, addr := range addrs {
 		fmt.Printf("Swarm announcing %s\n", addr)
 	}
-
 }
 
-// serveHTTPGateway collects options, creates listener, prints status message and starts serving requests
+// serveHTTPGateway collects options, creates listener, prints status message and starts serving requests.
 func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, error) {
 	cfg, err := cctx.GetConfig()
 	if err != nil {
@@ -774,7 +798,11 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	writable, writableOptionFound := req.Options[writableKwd].(bool)
 	if !writableOptionFound {
-		writable = cfg.Gateway.Writable
+		writable = cfg.Gateway.Writable.WithDefault(false)
+	}
+
+	if writable {
+		log.Fatalf("Support for Gateway.Writable and --writable has been REMOVED. Please remove it from your config file or CLI. Modern replacement tracked in https://github.com/ipfs/specs/issues/375")
 	}
 
 	listeners, err := sockets.TakeListeners("io.ipfs.gateway")
@@ -807,22 +835,23 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	}
 
 	// we might have listened to /tcp/0 - let's see what we are listing on
-	gwType := "readonly"
-	if writable {
-		gwType = "writable"
+	for _, listener := range listeners {
+		fmt.Printf("Gateway server listening on %s\n", listener.Multiaddr())
 	}
 
-	for _, listener := range listeners {
-		fmt.Printf("Gateway (%s) server listening on %s\n", gwType, listener.Multiaddr())
+	if cfg.Gateway.ExposeRoutingAPI.WithDefault(config.DefaultExposeRoutingAPI) {
+		for _, listener := range listeners {
+			fmt.Printf("Routing V1 API exposed at http://%s/routing/v1\n", listener.Addr())
+		}
 	}
 
 	cmdctx := *cctx
 	cmdctx.Gateway = true
 
-	var opts = []corehttp.ServeOption{
+	opts := []corehttp.ServeOption{
 		corehttp.MetricsCollectionOption("gateway"),
 		corehttp.HostnameOption(),
-		corehttp.GatewayOption(writable, "/ipfs", "/ipns"),
+		corehttp.GatewayOption("/ipfs", "/ipns"),
 		corehttp.VersionOption(),
 		corehttp.CheckVersionOption(),
 		corehttp.CommandsROOption(cmdctx),
@@ -830,6 +859,10 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 
 	if cfg.Experimental.P2pHttpProxy {
 		opts = append(opts, corehttp.P2PProxyOption())
+	}
+
+	if cfg.Gateway.ExposeRoutingAPI.WithDefault(config.DefaultExposeRoutingAPI) {
+		opts = append(opts, corehttp.RoutingOption())
 	}
 
 	if len(cfg.Gateway.RootRedirect) > 0 {
@@ -873,7 +906,62 @@ func serveHTTPGateway(req *cmds.Request, cctx *oldcmds.Context) (<-chan error, e
 	return errc, nil
 }
 
-// collects options and opens the fuse mountpoint
+const gatewayProtocolID protocol.ID = "/ipfs/gateway" // FIXME: specify https://github.com/ipfs/specs/issues/433
+
+func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error) {
+	node, err := cctx.ConstructNode()
+	if err != nil {
+		return nil, fmt.Errorf("serveHTTPGatewayOverLibp2p: ConstructNode() failed: %s", err)
+	}
+	cfg, err := node.Repo.Config()
+	if err != nil {
+		return nil, fmt.Errorf("could not read config: %w", err)
+	}
+
+	if !cfg.Experimental.GatewayOverLibp2p {
+		errCh := make(chan error)
+		close(errCh)
+		return errCh, nil
+	}
+
+	opts := []corehttp.ServeOption{
+		corehttp.MetricsCollectionOption("libp2p-gateway"),
+		corehttp.Libp2pGatewayOption(),
+		corehttp.VersionOption(),
+	}
+
+	handler, err := corehttp.MakeHandler(node, nil, opts...)
+	if err != nil {
+		return nil, err
+	}
+
+	h := p2phttp.Host{
+		StreamHost: node.PeerHost,
+	}
+
+	tmpProtocol := protocol.ID("/kubo/delete-me")
+	h.SetHTTPHandler(tmpProtocol, http.NotFoundHandler())
+	h.WellKnownHandler.RemoveProtocolMeta(tmpProtocol)
+
+	h.WellKnownHandler.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
+	h.ServeMux = http.NewServeMux()
+	h.ServeMux.Handle("/", handler)
+
+	errc := make(chan error, 1)
+	go func() {
+		defer close(errc)
+		errc <- h.Serve()
+	}()
+
+	go func() {
+		<-node.Process.Closing()
+		h.Close()
+	}()
+
+	return errc, nil
+}
+
+// collects options and opens the fuse mountpoint.
 func mountFuse(req *cmds.Request, cctx *oldcmds.Context) error {
 	cfg, err := cctx.GetConfig()
 	if err != nil {

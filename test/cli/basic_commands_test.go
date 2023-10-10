@@ -88,6 +88,7 @@ func TestAllSubcommandsAcceptHelp(t *testing.T) {
 	t.Parallel()
 	node := harness.NewT(t).NewNode()
 	for _, cmd := range node.IPFSCommands() {
+		cmd := cmd
 		t.Run(fmt.Sprintf("command %q accepts help", cmd), func(t *testing.T) {
 			t.Parallel()
 			splitCmd := strings.Split(cmd, " ")[1:]
@@ -209,7 +210,6 @@ func TestCommandDocsWidth(t *testing.T) {
 			for _, line := range SplitLines(res) {
 				assert.LessOrEqualf(t, len(line), 80, "expected width %d < 80 for %q", len(line), cmd)
 			}
-
 		})
 	}
 }
@@ -225,7 +225,6 @@ func TestAllCommandsFailWhenPassedBadFlag(t *testing.T) {
 			assert.Equal(t, 1, res.Cmd.ProcessState.ExitCode())
 		})
 	}
-
 }
 
 func TestCommandsFlags(t *testing.T) {

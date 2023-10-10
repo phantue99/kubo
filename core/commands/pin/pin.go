@@ -8,19 +8,19 @@ import (
 	"os"
 	"time"
 
-	bserv "github.com/ipfs/go-blockservice"
+	bserv "github.com/ipfs/boxo/blockservice"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	options "github.com/ipfs/boxo/coreiface/options"
+	offline "github.com/ipfs/boxo/exchange/offline"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
+	verifcid "github.com/ipfs/boxo/verifcid"
 	cid "github.com/ipfs/go-cid"
 	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	offline "github.com/ipfs/go-ipfs-exchange-offline"
-	dag "github.com/ipfs/go-merkledag"
-	verifcid "github.com/ipfs/go-verifcid"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	"github.com/ipfs/interface-go-ipfs-core/path"
 
 	core "github.com/ipfs/kubo/core"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	e "github.com/ipfs/kubo/core/commands/e"
 )
 
@@ -184,7 +184,12 @@ var addPinCmd = &cmds.Command{
 func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, paths []string, recursive bool) ([]string, error) {
 	added := make([]string, len(paths))
 	for i, b := range paths {
-		rp, err := api.ResolvePath(ctx, path.New(b))
+		p, err := cmdutils.PathOrCidPath(b)
+		if err != nil {
+			return nil, err
+		}
+
+		rp, _, err := api.ResolvePath(ctx, p)
 		if err != nil {
 			return nil, err
 		}
@@ -192,7 +197,7 @@ func pinAddMany(ctx context.Context, api coreiface.CoreAPI, enc cidenc.Encoder, 
 		if err := api.Pin().Add(ctx, rp, options.Pin.Recursive(recursive)); err != nil {
 			return nil, err
 		}
-		added[i] = enc.Encode(rp.Cid())
+		added[i] = enc.Encode(rp.RootCid())
 	}
 
 	return added, nil
@@ -242,12 +247,17 @@ ipfs pin ls -t indirect <cid>
 
 		pins := make([]string, 0, len(req.Arguments))
 		for _, b := range req.Arguments {
-			rp, err := api.ResolvePath(req.Context, path.New(b))
+			p, err := cmdutils.PathOrCidPath(b)
 			if err != nil {
 				return err
 			}
 
-			id := enc.Encode(rp.Cid())
+			rp, _, err := api.ResolvePath(req.Context, p)
+			if err != nil {
+				return err
+			}
+
+			id := enc.Encode(rp.RootCid())
 			pins = append(pins, id)
 			if err := api.Pin().Rm(req.Context, rp, options.Pin.RmRecursive(recursive)); err != nil {
 				return err
@@ -342,13 +352,16 @@ Example:
 		}
 
 		// For backward compatibility, we accumulate the pins in the same output type as before.
-		emit := res.Emit
+		var emit func(PinLsOutputWrapper) error
 		lgcList := map[string]PinLsType{}
 		if !stream {
-			emit = func(v interface{}) error {
-				obj := v.(*PinLsOutputWrapper)
-				lgcList[obj.PinLsObject.Cid] = PinLsType{Type: obj.PinLsObject.Type}
+			emit = func(v PinLsOutputWrapper) error {
+				lgcList[v.PinLsObject.Cid] = PinLsType{Type: v.PinLsObject.Type}
 				return nil
+			}
+		} else {
+			emit = func(v PinLsOutputWrapper) error {
+				return res.Emit(v)
 			}
 		}
 
@@ -362,16 +375,16 @@ Example:
 		}
 
 		if !stream {
-			return cmds.EmitOnce(res, &PinLsOutputWrapper{
+			return cmds.EmitOnce(res, PinLsOutputWrapper{
 				PinLsList: PinLsList{Keys: lgcList},
 			})
 		}
 
 		return nil
 	},
-	Type: &PinLsOutputWrapper{},
+	Type: PinLsOutputWrapper{},
 	Encoders: cmds.EncoderMap{
-		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.JSON: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
 			enc := json.NewEncoder(w)
@@ -382,7 +395,7 @@ Example:
 
 			return enc.Encode(out.PinLsList)
 		}),
-		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinLsOutputWrapper) error {
+		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out PinLsOutputWrapper) error {
 			quiet, _ := req.Options[pinQuietOptionName].(bool)
 			stream, _ := req.Options[pinStreamOptionName].(bool)
 
@@ -418,7 +431,7 @@ type PinLsOutputWrapper struct {
 
 // PinLsList is a set of pins with their type
 type PinLsList struct {
-	Keys map[string]PinLsType
+	Keys map[string]PinLsType `json:",omitempty"`
 }
 
 // PinLsType contains the type of a pin
@@ -432,7 +445,7 @@ type PinLsObject struct {
 	Type string `json:",omitempty"`
 }
 
-func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -450,7 +463,12 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	}
 
 	for _, p := range req.Arguments {
-		rp, err := api.ResolvePath(req.Context, path.New(p))
+		p, err := cmdutils.PathOrCidPath(p)
+		if err != nil {
+			return err
+		}
+
+		rp, _, err := api.ResolvePath(req.Context, p)
 		if err != nil {
 			return err
 		}
@@ -470,10 +488,10 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 			pinType = "indirect through " + pinType
 		}
 
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: pinType,
-				Cid:  enc.Encode(rp.Cid()),
+				Cid:  enc.Encode(rp.RootCid()),
 			},
 		})
 		if err != nil {
@@ -484,7 +502,7 @@ func pinLsKeys(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fu
 	return nil
 }
 
-func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value interface{}) error) error {
+func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit func(value PinLsOutputWrapper) error) error {
 	enc, err := cmdenv.GetCidEncoder(req)
 	if err != nil {
 		return err
@@ -511,10 +529,10 @@ func pinLsAll(req *cmds.Request, typeStr string, api coreiface.CoreAPI, emit fun
 		if err := p.Err(); err != nil {
 			return err
 		}
-		err = emit(&PinLsOutputWrapper{
+		err = emit(PinLsOutputWrapper{
 			PinLsObject: PinLsObject{
 				Type: p.Type(),
-				Cid:  enc.Encode(p.Path().Cid()),
+				Cid:  enc.Encode(p.Path().RootCid()),
 			},
 		})
 		if err != nil {
@@ -565,12 +583,22 @@ pin.
 
 		unpin, _ := req.Options[pinUnpinOptionName].(bool)
 
-		// Resolve the paths ahead of time so we can return the actual CIDs
-		from, err := api.ResolvePath(req.Context, path.New(req.Arguments[0]))
+		fromPath, err := cmdutils.PathOrCidPath(req.Arguments[0])
 		if err != nil {
 			return err
 		}
-		to, err := api.ResolvePath(req.Context, path.New(req.Arguments[1]))
+
+		toPath, err := cmdutils.PathOrCidPath(req.Arguments[1])
+		if err != nil {
+			return err
+		}
+
+		// Resolve the paths ahead of time so we can return the actual CIDs
+		from, _, err := api.ResolvePath(req.Context, fromPath)
+		if err != nil {
+			return err
+		}
+		to, _, err := api.ResolvePath(req.Context, toPath)
 		if err != nil {
 			return err
 		}
@@ -580,7 +608,7 @@ pin.
 			return err
 		}
 
-		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.Cid()), enc.Encode(to.Cid())}})
+		return cmds.EmitOnce(res, &PinOutput{Pins: []string{enc.Encode(from.RootCid()), enc.Encode(to.RootCid())}})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, out *PinOutput) error {
@@ -648,13 +676,14 @@ var verifyPinCmd = &cmds.Command{
 
 // PinVerifyRes is the result returned for each pin checked in "pin verify"
 type PinVerifyRes struct {
-	Cid string
+	Cid string `json:",omitempty"`
+	Err string `json:",omitempty"`
 	PinStatus
 }
 
 // PinStatus is part of PinVerifyRes, do not use directly
 type PinStatus struct {
-	Ok       bool
+	Ok       bool      `json:",omitempty"`
 	BadNodes []BadNode `json:",omitempty"`
 }
 
@@ -669,16 +698,13 @@ type pinVerifyOpts struct {
 	includeOk bool
 }
 
-func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan interface{}, error) {
+// FIXME: this implementation is duplicated sith core/coreapi.PinAPI.Verify, remove this one and exclusively rely on CoreAPI.
+func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc cidenc.Encoder) (<-chan any, error) {
 	visited := make(map[cid.Cid]PinStatus)
 
 	bs := n.Blocks.Blockstore()
 	DAG := dag.NewDAGService(bserv.New(bs, offline.Exchange(bs)))
 	getLinks := dag.GetLinksWithDAG(DAG)
-	recPins, err := n.Pinning.RecursiveKeys(ctx)
-	if err != nil {
-		return nil, err
-	}
 
 	var checkPin func(root cid.Cid) PinStatus
 	checkPin = func(root cid.Cid) PinStatus {
@@ -687,7 +713,7 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 			return status
 		}
 
-		if err := verifcid.ValidateCid(root); err != nil {
+		if err := verifcid.ValidateCid(verifcid.DefaultAllowlist, root); err != nil {
 			status := PinStatus{Ok: false}
 			if opts.explain {
 				status.BadNodes = []BadNode{{Cid: enc.Encode(key), Err: err.Error()}}
@@ -719,14 +745,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 		return status
 	}
 
-	out := make(chan interface{})
+	out := make(chan any)
 	go func() {
 		defer close(out)
-		for _, cid := range recPins {
-			pinStatus := checkPin(cid)
+		for p := range n.Pinning.RecursiveKeys(ctx) {
+			if p.Err != nil {
+				out <- PinVerifyRes{Err: p.Err.Error()}
+				return
+			}
+			pinStatus := checkPin(p.C)
 			if !pinStatus.Ok || opts.includeOk {
 				select {
-				case out <- &PinVerifyRes{enc.Encode(cid), pinStatus}:
+				case out <- PinVerifyRes{Cid: enc.Encode(p.C), PinStatus: pinStatus}:
 				case <-ctx.Done():
 					return
 				}
@@ -739,12 +769,18 @@ func pinVerify(ctx context.Context, n *core.IpfsNode, opts pinVerifyOpts, enc ci
 
 // Format formats PinVerifyRes
 func (r PinVerifyRes) Format(out io.Writer) {
+	if r.Err != "" {
+		fmt.Fprintf(out, "error: %s\n", r.Err)
+		return
+	}
+
 	if r.Ok {
 		fmt.Fprintf(out, "%s ok\n", r.Cid)
-	} else {
-		fmt.Fprintf(out, "%s broken\n", r.Cid)
-		for _, e := range r.BadNodes {
-			fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
-		}
+		return
+	}
+
+	fmt.Fprintf(out, "%s broken\n", r.Cid)
+	for _, e := range r.BadNodes {
+		fmt.Fprintf(out, "  %s: %s\n", e.Cid, e.Err)
 	}
 }
