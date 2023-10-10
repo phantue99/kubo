@@ -111,7 +111,7 @@ require (
 	go.uber.org/dig v1.15.0
 	go.uber.org/fx v1.18.2
 	go.uber.org/zap v1.24.0
-	golang.org/x/crypto v0.3.0
+	golang.org/x/crypto v0.4.0
 	golang.org/x/mod v0.7.0
 	golang.org/x/sync v0.1.0
 	golang.org/x/sys v0.3.0
@@ -237,7 +237,7 @@ require (
 	go.uber.org/multierr v1.9.0 // indirect
 	go4.org v0.0.0-20200411211856-f5505b9728dd // indirect
 	golang.org/x/exp v0.0.0-20221205204356-47842c84f3db // indirect
-	golang.org/x/net v0.3.0 // indirect
+	golang.org/x/net v0.4.0 // indirect
 	golang.org/x/oauth2 v0.0.0-20220223155221-ee480838109b // indirect
 	golang.org/x/term v0.3.0 // indirect
 	golang.org/x/text v0.5.0 // indirect
@@ -255,7 +255,7 @@ require (
 
 replace (
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
-	github.com/ipfs/go-blockservice => github.com/phantue99/go-blockservice v0.0.0-20230721094256-e0764287c73d
+	github.com/ipfs/go-blockservice => github.com/phantue99/go-blockservice v0.0.0-20230815045237-db7cf1a022ab
 )
 
 go 1.18
