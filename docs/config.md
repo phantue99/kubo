@@ -50,6 +50,9 @@ config file at runtime.
   - [`Gateway`](#gateway)
     - [`Gateway.NoFetch`](#gatewaynofetch)
     - [`Gateway.NoDNSLink`](#gatewaynodnslink)
+    - [`Gateway.DeserializedResponses`](#gatewaydeserializedresponses)
+    - [`Gateway.DisableHTMLErrors`](#gatewaydisablehtmlerrors)
+    - [`Gateway.ExposeRoutingAPI`](#gatewayexposeroutingapi)
     - [`Gateway.HTTPHeaders`](#gatewayhttpheaders)
     - [`Gateway.RootRedirect`](#gatewayrootredirect)
     - [`Gateway.FastDirIndexThreshold`](#gatewayfastdirindexthreshold)
@@ -60,6 +63,7 @@ config file at runtime.
       - [`Gateway.PublicGateways: UseSubdomains`](#gatewaypublicgateways-usesubdomains)
       - [`Gateway.PublicGateways: NoDNSLink`](#gatewaypublicgateways-nodnslink)
       - [`Gateway.PublicGateways: InlineDNSLink`](#gatewaypublicgateways-inlinednslink)
+      - [`Gateway.PublicGateways: DeserializedResponses`](#gatewaypublicgateways-deserializedresponses)
       - [Implicit defaults of `Gateway.PublicGateways`](#implicit-defaults-of-gatewaypublicgateways)
     - [`Gateway` recipes](#gateway-recipes)
   - [`Identity`](#identity)
@@ -100,6 +104,7 @@ config file at runtime.
     - [`Pubsub.Router`](#pubsubrouter)
     - [`Pubsub.DisableSigning`](#pubsubdisablesigning)
     - [`Pubsub.SeenMessagesTTL`](#pubsubseenmessagesttl)
+    - [`Pubsub.SeenMessagesStrategy`](#pubsubseenmessagesstrategy)
   - [`Peering`](#peering)
     - [`Peering.Peers`](#peeringpeers)
   - [`Reprovider`](#reprovider)
@@ -107,6 +112,7 @@ config file at runtime.
     - [`Reprovider.Strategy`](#reproviderstrategy)
   - [`Routing`](#routing)
     - [`Routing.Type`](#routingtype)
+    - [`Routing.AcceleratedDHTClient`](#routingaccelerateddhtclient)
     - [`Routing.Routers`](#routingrouters)
       - [`Routing.Routers: Type`](#routingrouters-type)
       - [`Routing.Routers: Parameters`](#routingrouters-parameters)
@@ -145,7 +151,6 @@ config file at runtime.
       - [`Swarm.ResourceMgr.Enabled`](#swarmresourcemgrenabled)
       - [`Swarm.ResourceMgr.MaxMemory`](#swarmresourcemgrmaxmemory)
       - [`Swarm.ResourceMgr.MaxFileDescriptors`](#swarmresourcemgrmaxfiledescriptors)
-      - [`Swarm.ResourceMgr.Limits`](#swarmresourcemgrlimits)
       - [`Swarm.ResourceMgr.Allowlist`](#swarmresourcemgrallowlist)
     - [`Swarm.Transports`](#swarmtransports)
     - [`Swarm.Transports.Network`](#swarmtransportsnetwork)
@@ -236,7 +241,7 @@ documented in `ipfs config profile --help`.
     smaller than several gigabytes. If you run IPFS with `--enable-gc`, you plan on storing very little data in
     your IPFS node, and disk usage is more critical than performance, consider using
     `flatfs`.
-  - This datastore uses up to several gigabytes of memory.  
+  - This datastore uses up to several gigabytes of memory.
   - Good for medium-size datastores, but may run into performance issues if your dataset is bigger than a terabyte.
   - The current implementation is based on old badger 1.x which is no longer supported by the upstream team.
 
@@ -246,10 +251,10 @@ documented in `ipfs config profile --help`.
 
   Reduces daemon overhead on the system. Affects node
   functionality - performance of content discovery and data
-  fetching may be degraded. Local data won't be announced on routing systems like DHT.
+  fetching may be degraded. Local data won't be announced on routing systems like Amino DHT.
 
   - `Swarm.ConnMgr` set to maintain minimum number of p2p connections at a time.
-  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on DHT and other routing systems(!)
+  - Disables [`Reprovider`](#reprovider) service → no CID will be announced on Amino DHT and other routing systems(!)
   - Disables AutoNAT.
 
   Use this profile with caution.
@@ -369,19 +374,18 @@ Supported Transports:
 
 * tcp/ip{4,6} - `/ipN/.../tcp/...`
 * websocket - `/ipN/.../tcp/.../ws`
-* quic (Draft-29) - `/ipN/.../udp/.../quic` - can share the same two tuple with `/quic-v1` and `/quic-v1/webtransport`
-* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic` and `/quic-v1/webtransport`
-* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic` and `/quic-v1`
+* quicv1 (RFC9000) - `/ipN/.../udp/.../quic-v1` - can share the same two tuple with `/quic-v1/webtransport`
+* webtransport `/ipN/.../udp/.../quic-v1/webtransport` - can share the same two tuple with `/quic-v1`
+
+Note that quic (Draft-29) used to be supported with the format `/ipN/.../udp/.../quic`, but has since been [removed](https://github.com/libp2p/go-libp2p/releases/tag/v0.30.0).
 
 Default:
 ```json
 [
   "/ip4/0.0.0.0/tcp/4001",
   "/ip6/::/tcp/4001",
-  "/ip4/0.0.0.0/udp/4001/quic",
   "/ip4/0.0.0.0/udp/4001/quic-v1",
   "/ip4/0.0.0.0/udp/4001/quic-v1/webtransport",
-  "/ip6/::/udp/4001/quic",
   "/ip6/::/udp/4001/quic-v1",
   "/ip6/::/udp/4001/quic-v1/webtransport"
 ]
@@ -454,7 +458,7 @@ Type: `string` (one of `"enabled"` or `"disabled"`)
 
 ### `AutoNAT.Throttle`
 
-When set, this option configure's the AutoNAT services throttling behavior. By
+When set, this option configures the AutoNAT services throttling behavior. By
 default, Kubo will rate-limit the number of NAT checks performed for other
 nodes to 30 per minute, and 3 per peer.
 
@@ -616,7 +620,7 @@ Type: `bool`
 
 #### `Discovery.MDNS.Interval`
 
-**REMOVED:**  this is not configurable any more
+**REMOVED:**  this is not configurable anymore
 in the [new mDNS implementation](https://github.com/libp2p/zeroconf#readme).
 
 ## `Experimental`
@@ -646,24 +650,45 @@ Default: `false`
 
 Type: `bool`
 
+### `Gateway.DeserializedResponses`
+
+An optional flag to explicitly configure whether this gateway responds to deserialized
+requests, or not. By default, it is enabled. When disabling this option, the gateway
+operates as a Trustless Gateway only: https://specs.ipfs.tech/http-gateways/trustless-gateway/.
+
+Default: `true`
+
+Type: `flag`
+
+### `Gateway.DisableHTMLErrors`
+
+An optional flag to disable the pretty HTML error pages of the gateway. Instead,
+a `text/plain` page will be returned with the raw error message from Kubo.
+
+It is useful for whitelabel or middleware deployments that wish to avoid
+`text/html` responses with IPFS branding and links on error pages in browsers.
+
+Default: `false`
+
+Type: `flag`
+
+### `Gateway.ExposeRoutingAPI`
+
+An optional flag to expose Kubo `Routing` system on the gateway port as a [Routing
+V1](https://specs.ipfs.tech/routing/routing-v1/) endpoint.  This only affects your
+local gateway, at `127.0.0.1`.
+
+This endpoint can be used by other Kubo instance, as illustrated in [`delegated_routing_v1_http_proxy_test.go`](https://github.com/ipfs/kubo/blob/master/test/cli/delegated_routing_v1_http_proxy_test.go).
+
+Default: `false`
+
+Type: `flag`
+
 ### `Gateway.HTTPHeaders`
 
 Headers to set on gateway responses.
 
-Default:
-```json
-{
-	"Access-Control-Allow-Headers": [
-		"X-Requested-With"
-	],
-	"Access-Control-Allow-Methods": [
-		"GET"
-	],
-	"Access-Control-Allow-Origin": [
-		"*"
-	]
-}
-```
+Default: `{}` + implicit CORS headers from `boxo/gateway#AddAccessControlHeaders` and [ipfs/specs#423](https://github.com/ipfs/specs/issues/423)
 
 Type: `object[string -> array[string]]`
 
@@ -681,11 +706,9 @@ Type: `string` (url)
 
 ### `Gateway.Writable`
 
-A boolean to configure whether the gateway is writeable or not.
+**REMOVED**: this option no longer available as of [Kubo 0.20](https://github.com/ipfs/kubo/blob/master/docs/changelogs/v0.20.md).
 
-Default: `false`
-
-Type: `bool`
+We are working on developing a modern replacement. To support our efforts, please leave a comment describing your use case in [ipfs/specs#375](https://github.com/ipfs/specs/issues/375).
 
 ### `Gateway.PathPrefixes`
 
@@ -789,6 +812,16 @@ https://publicsuffix.org, or a custom localhost logic in browsers like Brave
 has to be applied.
 
 Default: `false`
+
+Type: `flag`
+
+#### `Gateway.PublicGateways: DeserializedResponses`
+
+An optional flag to explicitly configure whether this gateway responds to deserialized
+requests, or not. By default, it is enabled. When disabling this option, the gateway
+operates as a Trustless Gateway only: https://specs.ipfs.tech/http-gateways/trustless-gateway/.
+
+Default: same as global `Gateway.DeserializedResponses`
 
 Type: `flag`
 
@@ -897,7 +930,7 @@ Type: `string` (base64 encoded)
 
 ## `Internal`
 
-This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile Kubo.  
+This section includes internal knobs for various subsystems to allow advanced users with big or private infrastructures to fine-tune some behaviors without the need to recompile Kubo.
 
 **Be aware that making informed change here requires in-depth knowledge and most users should leave these untouched. All knobs listed here are subject to breaking changes between versions.**
 
@@ -910,7 +943,7 @@ based on the metrics `ipfs_bitswap_active_tasks`, `ipfs_bitswap_pending_tasks`,
 `ipfs_bitswap_pending_block_tasks` and `ipfs_bitswap_active_block_tasks`
 reported by bitswap.
 
-These metrics can be accessed as the prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
+These metrics can be accessed as the Prometheus endpoint at `{Addresses.API}/debug/metrics/prometheus` (default: `http://127.0.0.1:5001/debug/metrics/prometheus`)
 
 The value of `ipfs_bitswap_active_tasks` is capped by `EngineTaskWorkerCount`.
 
@@ -934,7 +967,7 @@ while `ipfs_bitswap_active_block_tasks` is at its maximum, there is indication t
 available block tasks is creating a bottleneck (either due to high-latency block operations,
 or due to high number of block operations per bitswap peer task).
 In such cases, try increasing the `EngineBlockstoreWorkerCount`.
-If this adjustment still does not increase the throuput of the node, there might
+If this adjustment still does not increase the throughput of the node, there might
 be hardware limitations like I/O or CPU.
 
 #### `Internal.Bitswap.TaskWorkerCount`
@@ -963,7 +996,7 @@ Type: `optionalInteger` (thread count, `null` means default which is 8)
 #### `Internal.Bitswap.MaxOutstandingBytesPerPeer`
 
 Maximum number of bytes (across all tasks) pending to be processed and sent to any individual peer.
-This number controls fairness and can very from 250Kb (very fair) to 10Mb (less fair, with more work
+This number controls fairness and can vary from 250Kb (very fair) to 10Mb (less fair, with more work
 dedicated to peers who ask for more). Values below 250Kb could cause thrashing.
 Values above 10Mb open the potential for aggressively-wanting peers to consume all resources and
 deteriorate the quality provided to less aggressively-wanting peers.
@@ -973,7 +1006,7 @@ Type: `optionalInteger` (byte count, `null` means default which is 1MB)
 ### `Internal.Bitswap.ProviderSearchDelay`
 
 This parameter determines how long to wait before looking for providers outside of bitswap.
-Other routing systems like the DHT are able to provide results in less than a second, so lowering 
+Other routing systems like the Amino DHT are able to provide results in less than a second, so lowering
 this number will allow faster peers lookups in some cases.
 
 Type: `optionalDuration` (`null` means default which is 1s)
@@ -1162,13 +1195,15 @@ Type: `duration`
 
 ## `Pubsub`
 
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
 Pubsub configures the `ipfs pubsub` subsystem. To use, it must be enabled by
 passing the `--enable-pubsub-experiment` flag to the daemon
 or via the `Pubsub.Enabled` flag below.
 
 ### `Pubsub.Enabled`
 
-**EXPERIMENTAL:** read about current limitations at [experimental-features.md#ipfs-pubsub](./experimental-features.md#ipfs-pubsub).
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Enables the pubsub system.
 
@@ -1177,6 +1212,8 @@ Default: `false`
 Type: `flag`
 
 ### `Pubsub.Router`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
 
 Sets the default router used by pubsub to route messages to peers. This can be one of:
 
@@ -1193,6 +1230,8 @@ Type: `string` (one of `"floodsub"`, `"gossipsub"`, or `""` (apply default))
 
 ### `Pubsub.DisableSigning`
 
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
 Disables message signing and signature verification. Enable this option if
 you're operating in a completely trusted network.
 
@@ -1206,8 +1245,10 @@ Type: `bool`
 
 ### `Pubsub.SeenMessagesTTL`
 
-Configures the duration after which a previously seen Pubsub Message ID can be
-forgotten about.
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
+Controls the time window within which duplicate messages, identified by Message
+ID, will be identified and won't be emitted again.
 
 A smaller value for this parameter means that Pubsub messages in the cache will
 be garbage collected sooner, which can result in a smaller cache. At the same
@@ -1222,6 +1263,31 @@ propagated through the network.
 Default: see `TimeCacheDuration` from [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub)
 
 Type: `optionalDuration`
+
+### `Pubsub.SeenMessagesStrategy`
+
+**DEPRECATED**: See [#9717](https://github.com/ipfs/kubo/issues/9717)
+
+Determines how the time-to-live (TTL) countdown for deduplicating Pubsub
+messages is calculated.
+
+The Pubsub seen messages cache is a LRU cache that keeps messages for up to a
+specified time duration. After this duration has elapsed, expired messages will
+be purged from the cache.
+
+The `last-seen` cache is a sliding-window cache. Every time a message is seen
+again with the SeenMessagesTTL duration, its timestamp slides forward. This
+keeps frequently occurring messages cached and prevents them from being
+continually propagated, especially because of issues that might increase the
+number of duplicate messages in the network.
+
+The `first-seen` cache will store new messages and purge them after the
+SeenMessagesTTL duration, even if they are seen multiple times within this
+duration.
+
+Default: `last-seen` (see [go-libp2p-pubsub](https://github.com/libp2p/go-libp2p-pubsub))
+
+Type: `optionalString`
 
 ## `Peering`
 
@@ -1274,7 +1340,7 @@ The set of peers with which to peer.
       },
       {
         "ID": "QmPeerID2",
-        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic"]
+        "Addrs": ["/ip4/18.1.1.2/tcp/4001", "/ip4/18.1.1.2/udp/4001/quic-v1"]
       }
     ]
   }
@@ -1282,7 +1348,7 @@ The set of peers with which to peer.
 }
 ```
 
-Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the DHT will be queried.
+Where `ID` is the peer ID and `Addrs` is a set of known addresses for the peer. If no addresses are specified, the Amino DHT will be queried.
 
 Additional fields may be added in the future.
 
@@ -1295,15 +1361,19 @@ Type: `array[peering]`
 ### `Reprovider.Interval`
 
 Sets the time between rounds of reproviding local content to the routing
-system. If unset, it defaults to 12 hours. If set to the value `"0"` it will
-disable content reproviding.
+system.
+
+- If unset, it uses the implicit safe default.
+- If set to the value `"0"` it will disable content reproviding.
 
 Note: disabling content reproviding will result in other nodes on the network
 not being able to discover that you have the objects that you have. If you want
 to have this disabled and keep the network aware of what you have, you must
 manually announce your content periodically.
 
-Type: `duration`
+Default: `22h` (`DefaultReproviderInterval`)
+
+Type: `optionalDuration` (unset for the default)
 
 ### `Reprovider.Strategy`
 
@@ -1315,7 +1385,7 @@ Tells reprovider what should be announced. Valid strategies are:
 
 Default: `"all"`
 
-Type: `string` (or unset for the default, which is "all")
+Type: `optionalString` (unset for the default)
 
 ## `Routing`
 
@@ -1323,15 +1393,17 @@ Contains options for content, peer, and IPNS routing mechanisms.
 
 ### `Routing.Type`
 
-There are multiple routing options: "auto", "none", "dht" and "custom".
+There are multiple routing options: "auto", "autoclient", "none", "dht", "dhtclient", and "custom".
 
-* **DEFAULT:** If unset, or set to "auto", your node will use the IPFS DHT
+* **DEFAULT:** If unset, or set to "auto", your node will use the public IPFS DHT (aka "Amino")
   and parallel HTTP routers listed below for additional speed.
+
+* If set to "autoclient", your node will behave as in "auto" but without running a DHT server.
 
 * If set to "none", your node will use _no_ routing system. You'll have to
   explicitly connect to peers that have the content you're looking for.
 
-* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the IPFS DHT (no HTTP routers).
+* If set to "dht" (or "dhtclient"/"dhtserver"), your node will ONLY use the Amino DHT (no HTTP routers).
 
 * If set to "custom", all default routers are disabled, and only ones defined in `Routing.Routers` will be used.
 
@@ -1349,11 +1421,11 @@ When `Routing.Type` is set to `auto` or `dht`, your node will start as a DHT cli
 switch to a DHT server when and if it determines that it's reachable from the
 public internet (e.g., it's not behind a firewall).
 
-To force a specific DHT-only mode, client or server, set `Routing.Type` to
+To force a specific Amino DHT-only mode, client or server, set `Routing.Type` to
 `dhtclient` or `dhtserver` respectively. Please do not set this to `dhtserver`
 unless you're sure your node is reachable from the public network.
 
-When `Routing.Type` is set to `auto` your node will accelerate some types of routing
+When `Routing.Type` is set to `auto` or `autoclient` your node will accelerate some types of routing
 by leveraging HTTP endpoints compatible with [IPIP-337](https://github.com/ipfs/specs/pull/337)
 in addition to the IPFS DHT.
 By default, an instance of [IPNI](https://github.com/ipni/specs/blob/main/IPNI.md#readme)
@@ -1364,13 +1436,60 @@ Default: `auto` (DHT + IPNI)
 
 Type: `optionalString` (`null`/missing means the default)
 
+
+### `Routing.AcceleratedDHTClient`
+
+This alternative Amino DHT client with a Full-Routing-Table strategy will
+do a complete scan of the DHT every hour and record all nodes found.
+Then when a lookup is tried instead of having to go through multiple Kad hops it
+is able to find the 20 final nodes by looking up the in-memory recorded network table.
+
+This means sustained higher memory to store the routing table
+and extra CPU and network bandwidth for each network scan.
+However the latency of individual read/write operations should be ~10x faster
+and the provide throughput up to 6 million times faster on larger datasets!
+
+This is not compatible with `Routing.Type` `custom`. If you are using composable routers
+you can configure this individually on each router.
+
+When it is enabled:
+- Client DHT operations (reads and writes) should complete much faster
+- The provider will now use a keyspace sweeping mode allowing to keep alive
+  CID sets that are multiple orders of magnitude larger.
+  - The standard Bucket-Routing-Table DHT will still run for the DHT server (if
+    the DHT server is enabled). This means the classical routing table will
+    still be used to answer other nodes.
+    This is critical to maintain to not harm the network.
+- The operations `ipfs stats dht` will default to showing information about the accelerated DHT client
+
+**Caveats:**
+1. Running the accelerated client likely will result in more resource consumption (connections, RAM, CPU, bandwidth)
+   - Users that are limited in the number of parallel connections their machines/networks can perform will likely suffer
+   - The resource usage is not smooth as the client crawls the network in rounds and reproviding is similarly done in rounds
+   - Users who previously had a lot of content but were unable to advertise it on the network will see an increase in
+     egress bandwidth as their nodes start to advertise all of their CIDs into the network. If you have lots of data
+     entering your node that you don't want to advertise, then consider using [Reprovider Strategies](#reproviderstrategy)
+     to reduce the number of CIDs that you are reproviding. Similarly, if you are running a node that deals mostly with
+     short-lived temporary data (e.g. you use a separate node for ingesting data then for storing and serving it) then
+     you may benefit from using [Strategic Providing](experimental-features.md#strategic-providing) to prevent advertising
+     of data that you ultimately will not have.
+2. Currently, the DHT is not usable for queries for the first 5-10 minutes of operation as the routing table is being
+prepared. This means operations like searching the DHT for particular peers or content will not work initially.
+   - You can see if the DHT has been initially populated by running `ipfs stats dht`
+3. Currently, the accelerated DHT client is not compatible with LAN-based DHTs and will not perform operations against
+them
+
+Default: `false`
+
+Type: `bool` (missing means `false`)
+
 ### `Routing.Routers`
 
 **EXPERIMENTAL: `Routing.Routers` configuration may change in future release**
 
 Map of additional Routers.
 
-Allows for extending the default routing (DHT) with alternative Router
+Allows for extending the default routing (Amino DHT) with alternative Router
 implementations.
 
 The map key is a name of a Router, and the value is its configuration.
@@ -1405,8 +1524,8 @@ HTTP:
   - `MaxProvideConcurrency`: It determines the number of threads used when providing content. GOMAXPROCS by default.
 
 DHT:
-  - `"Mode"`: Mode used by the DHT. Possible values: "server", "client", "auto"
-  - `"AcceleratedDHTClient"`: Set to `true` if you want to use the experimentalDHT.
+  - `"Mode"`: Mode used by the Amino DHT. Possible values: "server", "client", "auto"
+  - `"AcceleratedDHTClient"`: Set to `true` if you want to use the acceleratedDHT.
   - `"PublicIPNetwork"`: Set to `true` to create a `WAN` DHT. Set to `false` to create a `LAN` DHT.
 
 Parallel:
@@ -1439,7 +1558,7 @@ Type: `object[string->object]`
 
 **Examples:**
 
-Complete example using 2 Routers, DHT (LAN/WAN) and parallel.
+Complete example using 2 Routers, Amino DHT (LAN/WAN) and parallel.
 
 ```
 $ ipfs config Routing.Type --json '"custom"'
@@ -1515,9 +1634,9 @@ another node, even if this other node is on a different network. This may
 trigger netscan alerts on some hosting providers or cause strain in some setups.
 
 The `server` configuration profile fills up this list with sensible defaults,
-preventing dials to all non-routable IP addresses (e.g., `192.168.0.0/16`) but
-you should always check settings against your own network and/or hosting
-provider.
+preventing dials to all non-routable IP addresses (e.g., `/ip4/192.168.0.0/ipcidr/16`,
+which is the multiaddress representation of `192.168.0.0/16`) but you should always
+check settings against your own network and/or hosting provider.
 
 Default: `[]`
 
@@ -1589,8 +1708,8 @@ Type: `flag`
 
 #### `Swarm.RelayClient.StaticRelays`
 
-Your node will use these statically configured relay servers (V1 or V2)
-instead of discovering public relays V2 from the network.
+Your node will use these statically configured relay servers
+instead of discovering public relays ([Circuit Relay v2](https://github.com/libp2p/specs/blob/master/relay/circuit-v2.md)) from the network.
 
 Default: `[]`
 
@@ -1819,7 +1938,9 @@ This value is also used to scale the limit on various resources at various scope
 when the default limits (discussed in [libp2p resource management](./libp2p-resource-management.md)) are used.
 For example, increasing this value will increase the default limit for incoming connections.
 
-Default: `[TOTAL_SYSTEM_MEMORY]/4`
+It is possible to inspect the runtime limits via `ipfs swarm resources --help`.
+
+Default: `[TOTAL_SYSTEM_MEMORY]/2`
 Type: `optionalBytes`
 
 #### `Swarm.ResourceMgr.MaxFileDescriptors`
@@ -1831,62 +1952,6 @@ This param is ignored on Windows.
 
 Default `[TOTAL_SYSTEM_FILE_DESCRIPTORS]/2`
 Type: `optionalInteger`
-
-#### `Swarm.ResourceMgr.Limits`
-
-Map of resource limits [per scope](https://github.com/libp2p/go-libp2p/tree/master/p2p/host/resource-manager#resource-scopes).
-
-The map supports fields from the [`LimitConfig` struct](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit_defaults.go#L111).
-
-[`BaseLimit`s](https://github.com/libp2p/go-libp2p/blob/master/p2p/host/resource-manager/limit.go#L89) can be set for any scope, and within the `BaseLimit`, all limit <key,value>s are optional.
-
-The `Swarm.ResourceMgr.Limits` override the default limits described above.
-Any override `BaseLimits` or limit <key,value>s from `Swarm.ResourceMgr.Limits`
-that aren't specified will use the [computed default limits](./libp2p-resource-management.md#computed-default-limits).
-
-Example #1: setting limits for a specific scope
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "System": {
-          "Memory": 1073741824,
-          "FD": 512,
-          "Conns": 1024,
-          "ConnsInbound": 256,
-          "ConnsOutbound": 1024,
-          "Streams": 16384,
-          "StreamsInbound": 4096,
-          "StreamsOutbound": 16384
-        }
-      }
-    }
-  }
-}
-```
-
-Example #2: setting a specific <key,value> limit
-```json
-{
-  "Swarm": {
-    "ResourceMgr": {
-      "Limits": {
-        "Transient": {
-          "ConnsOutbound": 256,
-        }
-      }
-    }
-  }
-}
-```
-
-It is also possible to inspect and adjust some runtime limits via `ipfs swarm stats --help` and `ipfs swarm limit --help`.
-Changes made via `ipfs swarm limit` are persisted in `Swarm.ResourceMgr.Limits`.
-
-Default: `{}` (use the [computed defaults](./libp2p-resource-management.md#computed-default-limits))
-
-Type: `object[string->object]`
 
 #### `Swarm.ResourceMgr.Allowlist`
 
@@ -1914,10 +1979,10 @@ Each field in this section is a `flag`.
 
 #### `Swarm.Transports.Network.TCP`
 
-[TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol) is the most
-widely used transport by Kubo nodes. It doesn't directly support encryption
-and/or multiplexing, so libp2p will layer a security & multiplexing transport
-over it.
+[TCP](https://en.wikipedia.org/wiki/Transmission_Control_Protocol) is a simple
+and widely deployed transport, it should be compatible with most implementations
+and network configurations.  TCP doesn't directly support encryption and/or
+multiplexing, so libp2p will layer a security & multiplexing transport over it.
 
 Default: Enabled
 
@@ -1945,20 +2010,22 @@ Listen Addresses:
 
 #### `Swarm.Transports.Network.QUIC`
 
-[QUIC](https://en.wikipedia.org/wiki/QUIC) is a UDP-based transport with
-built-in encryption and multiplexing. The primary benefits over TCP are:
+[QUIC](https://en.wikipedia.org/wiki/QUIC) is the most widely used transport by
+Kubo nodes. It is a UDP-based transport with built-in encryption and
+multiplexing. The primary benefits over TCP are:
 
-1. It doesn't require a file descriptor per connection, easing the load on the OS.
-2. It currently takes 2 round trips to establish a connection (our TCP transport
-   currently takes 6).
+1. It takes 1 round trip to establish a connection (our TCP transport
+   currently takes 4).
+2. No [Head-of-Line blocking](https://en.wikipedia.org/wiki/Head-of-line_blocking).
+3. It doesn't require a file descriptor per connection, easing the load on the OS.
 
 Default: Enabled
 
 Type: `flag`
 
 Listen Addresses:
-* /ip4/0.0.0.0/udp/4001/quic (default)
-* /ip6/::/udp/4001/quic (default)
+* /ip4/0.0.0.0/udp/4001/quic-v1 (default)
+* /ip6/::/udp/4001/quic-v1 (default)
 
 #### `Swarm.Transports.Network.Relay`
 
@@ -2010,6 +2077,8 @@ Type: `flag`
 Configuration section for libp2p _security_ transports. Transports enabled in
 this section will be used to secure unencrypted connections.
 
+This does not concern all the QUIC transports which use QUIC's builtin encryption.
+
 Security transports are configured with the `priority` type.
 
 When establishing an _outbound_ connection, Kubo will try each security
@@ -2052,11 +2121,13 @@ Type: `priority`
 Configuration section for libp2p _multiplexer_ transports. Transports enabled in
 this section will be used to multiplex duplex connections.
 
-Multiplexer transports are secured the same way security transports are, with
+This does not concern all the QUIC transports which use QUIC's builtin muxing.
+
+Multiplexer transports are configured the same way security transports are, with
 the `priority` type. Like with security transports, the initiator gets their
 first choice.
 
-Supported transports are: Yamux (priority 100) and Mplex (priority 200)
+Supported transport is only: Yamux (priority 100)
 
 No default priority will ever be less than 100.
 
@@ -2070,17 +2141,17 @@ Type: `priority`
 
 ### `Swarm.Transports.Multiplexers.Mplex`
 
-Mplex is the default multiplexer used when communicating between Kubo and all
-other IPFS and libp2p implementations. Unlike Yamux:
+**DEPRECATED**: See https://github.com/ipfs/kubo/issues/9958
 
-* Mplex is a simpler protocol.
-* Mplex is more efficient.
-* Mplex does not have built-in keepalives.
-* Mplex does not support backpressure. Unfortunately, this means that, if a
-  single stream to a peer gets backed up for a period of time, the mplex
-  transport will kill the stream to allow the others to proceed. On the other
-  hand, the lack of backpressure means mplex can be significantly faster on some
-  high-latency connections.
+Mplex is deprecated, this is because it is unreliable and
+randomly drop streams when sending data *too fast*.
+
+New pieces of code rely on backpressure, that means the stream will dynamically
+slow down the sending rate if data is getting backed up.
+Backpressure is provided by **Yamux** and **QUIC**.
+
+If you want to turn it back on make sure to have a higher (lower is better)
+priority than `Yamux`, you don't want your Kubo to start defaulting to Mplex.
 
 Default: `200`
 

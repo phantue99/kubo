@@ -7,16 +7,16 @@ import (
 	"strings"
 	"time"
 
-	ns "github.com/ipfs/go-namesys"
+	ns "github.com/ipfs/boxo/namesys"
+	"github.com/ipfs/boxo/path"
+	cidenc "github.com/ipfs/go-cidutil/cidenc"
 	cmdenv "github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	ncmd "github.com/ipfs/kubo/core/commands/name"
 
-	cidenc "github.com/ipfs/go-cidutil/cidenc"
+	options "github.com/ipfs/boxo/coreiface/options"
+	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
 	cmds "github.com/ipfs/go-ipfs-cmds"
-	ipfspath "github.com/ipfs/go-path"
-	options "github.com/ipfs/interface-go-ipfs-core/options"
-	nsopts "github.com/ipfs/interface-go-ipfs-core/options/namesys"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
 )
 
 const (
@@ -108,7 +108,7 @@ Resolve the value of an IPFS DAG path:
 			if err != nil && err != ns.ErrResolveRecursion {
 				return err
 			}
-			return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: ipfspath.Path(p.String())})
+			return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: p.String()})
 		}
 
 		var enc cidenc.Encoder
@@ -128,22 +128,34 @@ Resolve the value of an IPFS DAG path:
 			}
 		}
 
-		// else, ipfs path or ipns with recursive flag
-		rp, err := api.ResolvePath(req.Context, path.New(name))
+		p, err := cmdutils.PathOrCidPath(name)
 		if err != nil {
 			return err
 		}
 
-		encoded := "/" + rp.Namespace() + "/" + enc.Encode(rp.Cid())
-		if remainder := rp.Remainder(); remainder != "" {
-			encoded += "/" + remainder
+		// else, ipfs path or ipns with recursive flag
+		rp, remainder, err := api.ResolvePath(req.Context, p)
+		if err != nil {
+			return err
 		}
 
-		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: ipfspath.Path(encoded)})
+		// Trick to encode path with correct encoding.
+		encodedPath := "/" + rp.Namespace() + "/" + enc.Encode(rp.RootCid())
+		if len(remainder) != 0 {
+			encodedPath += path.SegmentsToString(remainder...)
+		}
+
+		// Ensure valid and sanitized.
+		ep, err := path.NewPath(encodedPath)
+		if err != nil {
+			return err
+		}
+
+		return cmds.EmitOnce(res, &ncmd.ResolvedPath{Path: ep.String()})
 	},
 	Encoders: cmds.EncoderMap{
 		cmds.Text: cmds.MakeTypedEncoder(func(req *cmds.Request, w io.Writer, rp *ncmd.ResolvedPath) error {
-			fmt.Fprintln(w, rp.Path.String())
+			fmt.Fprintln(w, rp.Path)
 			return nil
 		}),
 	},

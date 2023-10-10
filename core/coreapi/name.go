@@ -6,51 +6,35 @@ import (
 	"strings"
 	"time"
 
-	keystore "github.com/ipfs/go-ipfs-keystore"
-	"github.com/ipfs/go-namesys"
+	"github.com/ipfs/boxo/ipns"
+	keystore "github.com/ipfs/boxo/keystore"
+	"github.com/ipfs/boxo/namesys"
 	"github.com/ipfs/kubo/tracing"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	ipath "github.com/ipfs/go-path"
-	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	caopts "github.com/ipfs/interface-go-ipfs-core/options"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	coreiface "github.com/ipfs/boxo/coreiface"
+	caopts "github.com/ipfs/boxo/coreiface/options"
+	nsopts "github.com/ipfs/boxo/coreiface/options/namesys"
+	"github.com/ipfs/boxo/path"
 	ci "github.com/libp2p/go-libp2p/core/crypto"
 	peer "github.com/libp2p/go-libp2p/core/peer"
 )
 
 type NameAPI CoreAPI
 
-type ipnsEntry struct {
-	name  string
-	value path.Path
-}
-
-// Name returns the ipnsEntry name.
-func (e *ipnsEntry) Name() string {
-	return e.name
-}
-
-// Value returns the ipnsEntry value.
-func (e *ipnsEntry) Value() path.Path {
-	return e.value
-}
-
-type requestContextKey string
-
 // Publish announces new IPNS name and returns the new IPNS entry.
-func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (coreiface.IpnsEntry, error) {
+func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.NamePublishOption) (ipns.Name, error) {
 	ctx, span := tracing.Span(ctx, "CoreAPI.NameAPI", "Publish", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
 	if err := api.checkPublishAllowed(); err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	options, err := caopts.NamePublishOptions(opts...)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 	span.SetAttributes(
 		attribute.Bool("allowoffline", options.AllowOffline),
@@ -63,39 +47,36 @@ func (api *NameAPI) Publish(ctx context.Context, p path.Path, opts ...caopts.Nam
 
 	err = api.checkOnline(options.AllowOffline)
 	if err != nil {
-		return nil, err
-	}
-
-	pth, err := ipath.ParsePath(p.String())
-	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	k, err := keylookup(api.privateKey, api.repo.Keystore(), options.Key)
 	if err != nil {
-		return nil, err
-	}
-
-	if options.TTL != nil {
-		// nolint: staticcheck // non-backward compatible change
-		ctx = context.WithValue(ctx, requestContextKey("ipns-publish-ttl"), *options.TTL)
+		return ipns.Name{}, err
 	}
 
 	eol := time.Now().Add(options.ValidTime)
-	err = api.namesys.PublishWithEOL(ctx, k, pth, eol)
+
+	publishOptions := []nsopts.PublishOption{
+		nsopts.PublishWithEOL(eol),
+		nsopts.PublishCompatibleWithV1(options.CompatibleWithV1),
+	}
+
+	if options.TTL != nil {
+		publishOptions = append(publishOptions, nsopts.PublishWithTTL(*options.TTL))
+	}
+
+	err = api.namesys.Publish(ctx, k, p, publishOptions...)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
 	pid, err := peer.IDFromPrivateKey(k)
 	if err != nil {
-		return nil, err
+		return ipns.Name{}, err
 	}
 
-	return &ipnsEntry{
-		name:  coreiface.FormatKeyID(pid),
-		value: p,
-	}, nil
+	return ipns.NameFromPeer(pid), nil
 }
 
 func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.NameResolveOption) (<-chan coreiface.IpnsResult, error) {
@@ -133,7 +114,7 @@ func (api *NameAPI) Search(ctx context.Context, name string, opts ...caopts.Name
 		defer close(out)
 		for res := range resolver.ResolveAsync(ctx, name, options.ResolveOpts...) {
 			select {
-			case out <- coreiface.IpnsResult{Path: path.New(res.Path.String()), Err: res.Err}:
+			case out <- coreiface.IpnsResult{Path: res.Path, Err: res.Err}:
 			case <-ctx.Done():
 				return
 			}

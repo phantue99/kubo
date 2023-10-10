@@ -6,10 +6,10 @@ import (
 
 	cmds "github.com/ipfs/go-ipfs-cmds"
 	"github.com/ipfs/kubo/core/commands/cmdenv"
+	"github.com/ipfs/kubo/core/commands/cmdutils"
 	tar "github.com/ipfs/kubo/tar"
 
-	dag "github.com/ipfs/go-merkledag"
-	path "github.com/ipfs/interface-go-ipfs-core/path"
+	dag "github.com/ipfs/boxo/ipld/merkledag"
 )
 
 var TarCmd = &cmds.Command{
@@ -93,7 +93,12 @@ var tarCatCmd = &cmds.Command{
 			return err
 		}
 
-		root, err := api.ResolveNode(req.Context, path.New(req.Arguments[0]))
+		p, err := cmdutils.PathOrCidPath(req.Arguments[0])
+		if err != nil {
+			return err
+		}
+
+		root, err := api.ResolveNode(req.Context, p)
 		if err != nil {
 			return err
 		}

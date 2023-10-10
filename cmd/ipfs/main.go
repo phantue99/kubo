@@ -2,16 +2,27 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"math/rand"
+	"io"
 	"net"
 	"net/http"
 	"os"
 	"runtime/pprof"
+	"strings"
 	"time"
 
+	"github.com/blang/semver/v4"
+	"github.com/google/uuid"
+	u "github.com/ipfs/boxo/util"
+	cmds "github.com/ipfs/go-ipfs-cmds"
+	"github.com/ipfs/go-ipfs-cmds/cli"
+	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
+	logging "github.com/ipfs/go-log"
+	ipfs "github.com/ipfs/kubo"
 	"github.com/ipfs/kubo/cmd/ipfs/util"
 	oldcmds "github.com/ipfs/kubo/commands"
 	"github.com/ipfs/kubo/core"
@@ -21,24 +32,24 @@ import (
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/tracing"
-
-	cmds "github.com/ipfs/go-ipfs-cmds"
-	"github.com/ipfs/go-ipfs-cmds/cli"
-	cmdhttp "github.com/ipfs/go-ipfs-cmds/http"
-	u "github.com/ipfs/go-ipfs-util"
-	logging "github.com/ipfs/go-log"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
-
-	"github.com/google/uuid"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/contrib/propagators/autoprop"
 	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/codes"
+	"go.opentelemetry.io/otel/trace"
 )
 
-// log is the command logger
-var log = logging.Logger("cmd/ipfs")
+// log is the command logger.
+var (
+	log    = logging.Logger("cmd/ipfs")
+	tracer trace.Tracer
+)
 
-// declared as a var for testing purposes
+// declared as a var for testing purposes.
 var dnsResolver = madns.DefaultResolver
 
 const (
@@ -68,7 +79,7 @@ func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 // - if user requests help, print it and exit.
 // - run the command invocation
 // - output the response
-// - if anything fails, print error, maybe with help
+// - if anything fails, print error, maybe with help.
 func main() {
 	os.Exit(mainRet())
 }
@@ -89,9 +100,7 @@ func newUUID(key string) logging.Metadata {
 }
 
 func mainRet() (exitCode int) {
-	rand.Seed(time.Now().UnixNano())
 	ctx := logging.ContextWithLoggable(context.Background(), newUUID("session"))
-	var err error
 
 	tp, err := tracing.NewTracerProvider(ctx)
 	if err != nil {
@@ -103,6 +112,8 @@ func mainRet() (exitCode int) {
 		}
 	}()
 	otel.SetTracerProvider(tp)
+	otel.SetTextMapPropagator(autoprop.NewTextMapPropagator())
+	tracer = tp.Tracer("Kubo-cli")
 
 	stopFunc, err := profileIfEnabled()
 	if err != nil {
@@ -218,8 +229,12 @@ func apiAddrOption(req *cmds.Request) (ma.Multiaddr, error) {
 	return ma.NewMultiaddr(apiAddrStr)
 }
 
+// encodedAbsolutePathVersion is the version from which the absolute path header in
+// multipart requests is %-encoded. Before this version, its sent raw.
+var encodedAbsolutePathVersion = semver.MustParse("0.23.0-dev")
+
 func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
-	exe := cmds.NewExecutor(req.Root)
+	exe := tracingWrappedExecutor{cmds.NewExecutor(req.Root)}
 	cctx := env.(*oldcmds.Context)
 
 	// Check if the command is disabled.
@@ -294,23 +309,51 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		opts = append(opts, cmdhttp.ClientWithFallback(exe))
 	}
 
+	var tpt http.RoundTripper
 	switch network {
 	case "tcp", "tcp4", "tcp6":
+		tpt = http.DefaultTransport
 	case "unix":
 		path := host
 		host = "unix"
-		opts = append(opts, cmdhttp.ClientWithHTTPClient(&http.Client{
-			Transport: &http.Transport{
-				DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
-					return net.Dial("unix", path)
-				},
+		tpt = &http.Transport{
+			DialContext: func(_ context.Context, _, _ string) (net.Conn, error) {
+				return net.Dial("unix", path)
 			},
-		}))
+		}
 	default:
 		return nil, fmt.Errorf("unsupported API address: %s", apiAddr)
 	}
 
-	return cmdhttp.NewClient(host, opts...), nil
+	httpClient := &http.Client{
+		Transport: otelhttp.NewTransport(tpt),
+	}
+	opts = append(opts, cmdhttp.ClientWithHTTPClient(httpClient))
+
+	// Fetch remove version, as some feature compatibility might change depending on it.
+	remoteVersion, err := getRemoteVersion(tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)})
+	if err != nil {
+		return nil, err
+	}
+	opts = append(opts, cmdhttp.ClientWithRawAbsPath(remoteVersion.LT(encodedAbsolutePathVersion)))
+
+	return tracingWrappedExecutor{cmdhttp.NewClient(host, opts...)}, nil
+}
+
+type tracingWrappedExecutor struct {
+	exec cmds.Executor
+}
+
+func (twe tracingWrappedExecutor) Execute(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment) error {
+	ctx, span := tracer.Start(req.Context, "cmds."+strings.Join(req.Path, "."), trace.WithAttributes(attribute.StringSlice("Arguments", req.Arguments)))
+	defer span.End()
+	req.Context = ctx
+
+	err := twe.exec.Execute(req, re, env)
+	if err != nil {
+		span.SetStatus(codes.Error, err.Error())
+	}
+	return err
 }
 
 func getRepoPath(req *cmds.Request) (string, error) {
@@ -391,4 +434,41 @@ func resolveAddr(ctx context.Context, addr ma.Multiaddr) (ma.Multiaddr, error) {
 	}
 
 	return addrs[0], nil
+}
+
+type nopWriter struct {
+	io.Writer
+}
+
+func (nw nopWriter) Close() error {
+	return nil
+}
+
+func getRemoteVersion(exe cmds.Executor) (*semver.Version, error) {
+	ctx, cancel := context.WithDeadline(context.Background(), time.Now().Add(time.Second*30))
+	defer cancel()
+
+	req, err := cmds.NewRequest(ctx, []string{"version"}, nil, nil, nil, Root)
+	if err != nil {
+		return nil, err
+	}
+
+	var buf bytes.Buffer
+	re, err := cmds.NewWriterResponseEmitter(nopWriter{&buf}, req)
+	if err != nil {
+		return nil, err
+	}
+
+	err = exe.Execute(req, re, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	var out ipfs.VersionInfo
+	dec := json.NewDecoder(&buf)
+	if err := dec.Decode(&out); err != nil {
+		return nil, err
+	}
+
+	return semver.New(out.Version)
 }
