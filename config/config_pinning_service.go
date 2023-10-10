@@ -5,4 +5,5 @@ type ConfigPinningSerice struct {
 	PinningService     string
 	BlockserviceApiKey string
 	DedicatedGateway   bool
+	RedisConns		 []string
 }

@@ -35,15 +35,15 @@ go-tags=$(if $(GOTAGS), -tags="$(call join-with,$(space),$(GOTAGS))")
 go-flags-with-tags=$(GOFLAGS)$(go-tags)
 
 define go-build-relative
-go1.18 build $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
+go build $(go-flags-with-tags) -o "$@" "$(call go-pkg-name,$<)"
 endef
 
 define go-build
-go1.18 build $(go-flags-with-tags) -o "$@" "$(1)"
+go build $(go-flags-with-tags) -o "$@" "$(1)"
 endef
 
 define go-try-build
-go1.18 build $(go-flags-with-tags) -o /dev/null "$(call go-pkg-name,$<)"
+go build $(go-flags-with-tags) -o /dev/null "$(call go-pkg-name,$<)"
 endef
 
 test_go_test: $$(DEPS_GO)

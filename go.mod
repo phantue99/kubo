@@ -17,7 +17,6 @@ require (
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/ipfs/boxo v0.13.2-0.20231009073559-45c797e0ccea
 	github.com/ipfs/go-block-format v0.2.0
-	github.com/ipfs/go-blockservice v0.5.0
 	github.com/ipfs/go-cid v0.4.1
 	github.com/ipfs/go-cidutil v0.1.0
 	github.com/ipfs/go-datastore v0.6.0
@@ -138,6 +137,7 @@ require (
 	github.com/huin/goupnp v1.2.0 // indirect
 	github.com/ipfs/bbloom v0.0.4 // indirect
 	github.com/ipfs/go-bitfield v1.1.0 // indirect
+	github.com/ipfs/go-blockservice v0.5.0 // indirect
 	github.com/ipfs/go-ipfs-blockstore v1.3.0 // indirect
 	github.com/ipfs/go-ipfs-delay v0.0.1 // indirect
 	github.com/ipfs/go-ipfs-ds-help v1.1.0 // indirect
@@ -197,7 +197,7 @@ require (
 	github.com/quic-go/quic-go v0.38.1 // indirect
 	github.com/quic-go/webtransport-go v0.5.3 // indirect
 	github.com/raulk/go-watchdog v1.3.0 // indirect
-	github.com/redis/go-redis/v9 v9.0.5 // indirect
+	github.com/redis/go-redis/v9 v9.2.1 // indirect
 	github.com/rs/cors v1.7.0 // indirect
 	github.com/samber/lo v1.36.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
@@ -242,8 +242,8 @@ require (
 )
 
 replace (
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.0-20231010101807-2f11b4e43d81
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
-	github.com/ipfs/go-blockservice => github.com/phantue99/go-blockservice v0.0.0-20230815045237-db7cf1a022ab
 )
 
 go 1.20

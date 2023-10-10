@@ -16,7 +16,7 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/boxo/blockservice"
 	cid "github.com/ipfs/go-cid"
 
 	options "github.com/ipfs/boxo/coreiface/options"
@@ -379,7 +379,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	if err := blockservice.InitBlockService(cfg.ConfigPinningSerice.Uploader, cfg.ConfigPinningSerice.PinningService, cfg.ConfigPinningSerice.BlockserviceApiKey, cfg.ConfigPinningSerice.DedicatedGateway); err != nil {
+	if err := blockservice.InitBlockService(cfg.ConfigPinningSerice.Uploader, cfg.ConfigPinningSerice.PinningService, cfg.ConfigPinningSerice.BlockserviceApiKey, cfg.ConfigPinningSerice.DedicatedGateway, cfg.ConfigPinningSerice.RedisConns); err != nil {
 		fmt.Printf("InitBlockService  %s\n", err)
 		return errors.New("InitBlockService")
 	}

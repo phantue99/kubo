@@ -18,7 +18,7 @@ import (
 	"github.com/ipfs/kubo/core/commands"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
-	"github.com/ipfs/go-blockservice"
+	"github.com/ipfs/boxo/blockservice"
 	options "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -36,6 +36,7 @@ const (
 	psEp                = "pinning-service"
 	apiKey              = "api-key"
 	uploaderEndpoint    = "uploader-endpoint"
+	redisConn           = "redis-conn"
 )
 
 // nolint
@@ -73,6 +74,7 @@ environment variable:
 		cmds.StringOption(psEp, "Configuration pinning service endpoint"),
 		cmds.StringOption(apiKey, "Configuration pinning service api key"),
 		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint"),
+		cmds.StringOption(redisConn, "Configuration redis connection"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -131,14 +133,21 @@ environment variable:
 			pinningServiceEndpoint, _ := req.Options[psEp].(string)
 			blockserviceApiKey, _ := req.Options[apiKey].(string)
 			dGw, _ := req.Options[dedicatedGateway].(bool)
+			redisConn, ok := req.Options[redisConn].(string)
+			if !ok {
+				fmt.Println("redisConn is not ok")
+			}
+			redisConns := strings.Split(redisConn, ",")
+
 			configPinningSerice := config.ConfigPinningSerice{
 				Uploader:           uploaderEndpoint,
 				PinningService:     pinningServiceEndpoint,
 				BlockserviceApiKey: blockserviceApiKey,
 				DedicatedGateway:   dGw,
+				RedisConns:         redisConns,
 			}
 
-			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey, dGw); err != nil {
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey, dGw, redisConns); err != nil {
 				fmt.Printf("InitBlockService  %s\n", err)
 				return errors.New("InitBlockService")
 			}
