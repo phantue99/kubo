@@ -1,7 +1,6 @@
 package main
 
 import (
-	"bytes"
 	"errors"
 	_ "expvar"
 	"fmt"
@@ -11,13 +10,11 @@ import (
 	"os"
 	"runtime"
 	"sort"
-	"strings"
 	"sync"
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
 	"github.com/ipfs/boxo/blockservice"
-	cid "github.com/ipfs/go-cid"
 
 	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -945,7 +942,7 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 	if err != nil {
 		return nil, err
 	}
-	middlewareHandler := dedicatedGatewayMiddleware(handler, cfg)
+	middlewareHandler := corehttp.DedicatedGatewayMiddleware(handler, cfg)
 
 	h := p2phttp.Host{
 		StreamHost: node.PeerHost,
@@ -1076,49 +1073,4 @@ func printVersion() {
 	fmt.Printf("Repo version: %d\n", fsrepo.RepoVersion)
 	fmt.Printf("System version: %s\n", runtime.GOARCH+"/"+runtime.GOOS)
 	fmt.Printf("Golang version: %s\n", runtime.Version())
-}
-
-func dedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the path is follow the pattern /ipfs/<hash>
-		if strings.HasPrefix(r.URL.Path, "/ipfs/") && cfg.ConfigPinningSerice.DedicatedGateway {
-			// Get the hash from the request URL
-			hash := r.URL.Path[len("/ipfs/"):]
-
-			//parse the hash to check if it is a valid hash
-			if _, err := cid.Decode(hash); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-
-			// Call the getDedicatedGatewayAccess function
-			if err := getDedicatedGatewayAccess(hash, cfg); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func getDedicatedGatewayAccess(hash string, cfg *config.Config) error {
-	apiUrl := fmt.Sprintf("%s/api/dedicatedGateways/%s", cfg.ConfigPinningSerice.PinningService, hash)
-	req, err := http.NewRequest("GET", apiUrl, bytes.NewBuffer(nil))
-	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("blockservice-API-Key", cfg.ConfigPinningSerice.BlockserviceApiKey)
-	req.Header.Set("Content-Type", "application/json")
-	
-	resp, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return errors.New("Error while calling dedicated gateway API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return errors.New("No users have subscribed to this hash yet.")
-	}
-	return nil
 }

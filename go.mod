@@ -242,7 +242,7 @@ require (
 )
 
 replace (
-	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.0-20231010101807-2f11b4e43d81
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.0-20231026102137-ca305b707535
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
 )
 
