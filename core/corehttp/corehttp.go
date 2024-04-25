@@ -13,7 +13,10 @@ import (
 	"net/http"
 	"regexp"
 	"strings"
+	"sync"
 	"time"
+
+	"golang.org/x/time/rate"
 
 	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
@@ -152,6 +155,23 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	return serverError
 }
 
+var ipLimiters = make(map[string]*rate.Limiter)
+var cidLimiters = make(map[string]*rate.Limiter)
+var mtx sync.Mutex
+
+func getLimiter(limit string, limitMap map[string]*rate.Limiter, rps float64) *rate.Limiter {
+	mtx.Lock()
+	defer mtx.Unlock()
+
+	limiter, exists := limitMap[limit]
+	if !exists {
+		limiter = rate.NewLimiter(rate.Every(time.Minute), int(rps))
+		limitMap[limit] = limiter
+	}
+
+	return limiter
+}
+
 func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Handler {
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -173,6 +193,30 @@ func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Hand
 			// Call the getDedicatedGatewayAccess function
 			if err := getDedicatedGatewayAccess(cid.Hash().HexString(), cfg); err != nil {
 				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+		} else if !cfg.ConfigPinningSerice.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
+			ipLimiter := getLimiter(r.RemoteAddr, ipLimiters, 100)
+			if !ipLimiter.Allow() {
+				http.Error(w, "Too many requests from this IP", http.StatusTooManyRequests)
+				return
+			}
+			pathPattern := regexp.MustCompile(`/ipfs/([^/]+)`)
+
+			matches := pathPattern.FindStringSubmatch(r.URL.Path)
+			if matches == nil || len(matches) < 2 {
+				http.Error(w, "Invalid path", http.StatusBadRequest)
+				return
+			}
+			cid, err := cid.Parse(matches[1])
+			if err != nil {
+				http.Error(w, "Invalid hash", http.StatusBadRequest)
+				return
+			}
+
+			cidLimiter := getLimiter(cid.String(), cidLimiters, 15)
+			if !cidLimiter.Allow() {
+				http.Error(w, "Too many requests for this CID", http.StatusTooManyRequests)
 				return
 			}
 		}
