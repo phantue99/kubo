@@ -1,6 +1,7 @@
 package commands
 
 import (
+	"context"
 	"bufio"
 	"compress/gzip"
 	"errors"
@@ -76,6 +77,8 @@ may also specify the level of compression by specifying '-l=<1-9>'.
 		if err != nil {
 			return err
 		}
+
+		ctx = context.WithValue(ctx, "cache", false)
 
 		file, err := api.Unixfs().Get(ctx, p)
 		if err != nil {

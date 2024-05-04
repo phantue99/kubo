@@ -14,6 +14,7 @@ import (
 	"time"
 
 	multierror "github.com/hashicorp/go-multierror"
+	"github.com/ipfs/boxo/blockservice"
 
 	options "github.com/ipfs/boxo/coreiface/options"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -169,6 +170,7 @@ Headers.
 		cmds.StringOption(ipnsMountKwd, "Path to the mountpoint for IPNS (if using --mount). Defaults to config setting."),
 		cmds.BoolOption(unrestrictedAPIAccessKwd, "Allow API access to unlisted hashes"),
 		cmds.BoolOption(unencryptTransportKwd, "Disable transport encryption (for debugging protocols)"),
+		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint. See ipfs init --help for more"),
 		cmds.BoolOption(enableGCKwd, "Enable automatic periodic repo garbage collection"),
 		cmds.BoolOption(adjustFDLimitKwd, "Check and raise file descriptor limits if needed").WithDefault(true),
 		cmds.BoolOption(migrateKwd, "If true, assume yes at the migrate prompt. If false, assume no."),
@@ -257,7 +259,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+			configPinningService := config.ConfigPinningService{}
+			conf, err = config.InitWithIdentity(identity, configPinningService)
 			if err != nil {
 				return err
 			}
@@ -371,6 +374,17 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	cfg, err := repo.Config()
 	if err != nil {
 		return err
+	}
+
+	if err := blockservice.InitBlockService(
+		cfg.ConfigPinningService.Uploader,
+		cfg.ConfigPinningService.PinningService,
+		cfg.ConfigPinningService.DedicatedGateway,
+		cfg.ConfigPinningService.RedisConns,
+		cfg.ConfigPinningService.AmqpConnect,
+	); err != nil {
+		fmt.Printf("InitBlockService  %s\n", err)
+		return errors.New("InitBlockService")
 	}
 
 	if !psSet {
@@ -934,6 +948,7 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 	if err != nil {
 		return nil, err
 	}
+	middlewareHandler := corehttp.DedicatedGatewayMiddleware(handler, cfg)
 
 	h := p2phttp.Host{
 		StreamHost: node.PeerHost,
@@ -945,7 +960,7 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 
 	h.WellKnownHandler.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
 	h.ServeMux = http.NewServeMux()
-	h.ServeMux.Handle("/", handler)
+	h.ServeMux.Handle("/", middlewareHandler)
 
 	errc := make(chan error, 1)
 	go func() {

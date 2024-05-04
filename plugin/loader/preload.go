@@ -1,6 +1,7 @@
 package loader
 
 import (
+	pluginaiozfs "github.com/ipfs/kubo/plugin/plugins/aiozfs"
 	pluginbadgerds "github.com/ipfs/kubo/plugin/plugins/badgerds"
 	pluginiplddagjose "github.com/ipfs/kubo/plugin/plugins/dagjose"
 	pluginflatfs "github.com/ipfs/kubo/plugin/plugins/flatfs"
@@ -19,6 +20,7 @@ func init() {
 	Preload(pluginiplddagjose.Plugins...)
 	Preload(pluginbadgerds.Plugins...)
 	Preload(pluginflatfs.Plugins...)
+	Preload(pluginaiozfs.Plugins...)
 	Preload(pluginlevelds.Plugins...)
 	Preload(pluginpeerlog.Plugins...)
 	Preload(pluginfxtest.Plugins...)

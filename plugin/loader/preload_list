@@ -8,6 +8,7 @@ iplddagjose github.com/ipfs/kubo/plugin/plugins/dagjose *
 
 badgerds github.com/ipfs/kubo/plugin/plugins/badgerds *
 flatfs github.com/ipfs/kubo/plugin/plugins/flatfs *
+aiozfs github.com/ipfs/kubo/plugin/plugins/aiozfs *
 levelds github.com/ipfs/kubo/plugin/plugins/levelds *
 peerlog github.com/ipfs/kubo/plugin/plugins/peerlog *
 fxtest github.com/ipfs/kubo/plugin/plugins/fxtest *

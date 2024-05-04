@@ -18,6 +18,7 @@ import (
 	"github.com/ipfs/kubo/core/commands"
 	fsrepo "github.com/ipfs/kubo/repo/fsrepo"
 
+	"github.com/ipfs/boxo/blockservice"
 	options "github.com/ipfs/boxo/coreiface/options"
 	"github.com/ipfs/boxo/files"
 	cmds "github.com/ipfs/go-ipfs-cmds"
@@ -30,7 +31,13 @@ const (
 	bitsOptionName      = "bits"
 	emptyRepoDefault    = true
 	emptyRepoOptionName = "empty-repo"
+	dedicatedGateway    = "dedicated-gateway"
 	profileOptionName   = "profile"
+	psEp                = "pinning-service"
+	apiKey              = "api-key"
+	uploaderEndpoint    = "uploader-endpoint"
+	redisConn           = "redis-conn"
+	amqpConnect         = "amqp-connect"
 )
 
 // nolint
@@ -62,8 +69,14 @@ environment variable:
 	Options: []cmds.Option{
 		cmds.StringOption(algorithmOptionName, "a", "Cryptographic algorithm to use for key generation.").WithDefault(algorithmDefault),
 		cmds.IntOption(bitsOptionName, "b", "Number of bits to use in the generated RSA private key."),
+		cmds.BoolOption(dedicatedGateway, "Dedicated gateway"),
 		cmds.BoolOption(emptyRepoOptionName, "e", "Don't add and pin help files to the local storage.").WithDefault(emptyRepoDefault),
 		cmds.StringOption(profileOptionName, "p", "Apply profile settings to config. Multiple profiles can be separated by ','"),
+		cmds.StringOption(psEp, "Configuration pinning service endpoint"),
+		cmds.StringOption(apiKey, "Configuration pinning service api key"),
+		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint"),
+		cmds.StringOption(redisConn, "Configuration redis connection"),
+		cmds.StringOption(amqpConnect, "Configuration amqp connection"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -117,7 +130,32 @@ environment variable:
 			if err != nil {
 				return err
 			}
-			conf, err = config.InitWithIdentity(identity)
+
+			uploaderEndpoint, _ := req.Options[uploaderEndpoint].(string)
+			pinningServiceEndpoint, _ := req.Options[psEp].(string)
+			blockserviceApiKey, _ := req.Options[apiKey].(string)
+			dGw, _ := req.Options[dedicatedGateway].(bool)
+			redisConn, ok := req.Options[redisConn].(string)
+			if !ok {
+				fmt.Println("redisConn is not ok")
+			}
+			redisConns := strings.Split(redisConn, ",")
+			amqpConnect, _ := req.Options[amqpConnect].(string)
+
+			configPinningService := config.ConfigPinningService{
+				Uploader:           uploaderEndpoint,
+				PinningService:     pinningServiceEndpoint,
+				BlockserviceApiKey: blockserviceApiKey,
+				DedicatedGateway:   dGw,
+				RedisConns:         redisConns,
+				AmqpConnect:        amqpConnect,
+			}
+
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConns, amqpConnect); err != nil {
+				fmt.Printf("InitBlockService  %s\n", err)
+				return errors.New("InitBlockService")
+			}
+			conf, err = config.InitWithIdentity(identity, configPinningService)
 			if err != nil {
 				return err
 			}

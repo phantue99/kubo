@@ -24,6 +24,8 @@ func (api *PinAPI) Add(ctx context.Context, p path.Path, opts ...caopts.PinAddOp
 	ctx, span := tracing.Span(ctx, "CoreAPI.PinAPI", "Add", trace.WithAttributes(attribute.String("path", p.String())))
 	defer span.End()
 
+	ctx = context.WithValue(ctx, "cache", true)
+
 	dagNode, err := api.core().ResolveNode(ctx, p)
 	if err != nil {
 		return fmt.Errorf("pin: %s", err)

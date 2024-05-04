@@ -176,7 +176,9 @@ func initTempNode(ctx context.Context, bootstrap []string, peers []peer.AddrInfo
 	if err != nil {
 		return "", err
 	}
-	cfg, err := config.InitWithIdentity(identity)
+	
+	configPinningService := config.ConfigPinningService{}
+	cfg, err := config.InitWithIdentity(identity, configPinningService)
 	if err != nil {
 		return "", err
 	}

@@ -20,6 +20,7 @@ const (
 	progressOptionName = "progress"
 	silentOptionName   = "silent"
 	statsOptionName    = "stats"
+	userIDOptionName   = "userid"
 )
 
 // DagCmd provides a subset of commands for interacting with ipld dag objects
@@ -200,6 +201,7 @@ Specification of CAR formats: https://ipld.io/specs/transport/car/
 		cmds.BoolOption(pinRootsOptionName, "Pin optional roots listed in the .car headers after importing.").WithDefault(true),
 		cmds.BoolOption(silentOptionName, "No output."),
 		cmds.BoolOption(statsOptionName, "Output stats."),
+		cmds.StringOption(userIDOptionName, "u", "User UUID string"),
 		cmdutils.AllowBigBlockOption,
 	},
 	Type: CarImportOutput{},

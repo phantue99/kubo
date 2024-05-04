@@ -1,6 +1,7 @@
 package dagcmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -19,6 +20,10 @@ import (
 )
 
 func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment) error {
+
+	userID, _ := req.Options[userIDOptionName].(string)
+	req.Context = context.WithValue(req.Context, "userID", userID)
+
 	node, err := cmdenv.GetNode(env)
 	if err != nil {
 		return err
@@ -148,15 +153,15 @@ func dagImport(req *cmds.Request, res cmds.ResponseEmitter, env cmds.Environment
 			// This will trigger a full read of the DAG in the pinner, to make sure we have all blocks.
 			// Ideally we would do colloring of the pinning state while importing the blocks
 			// and ensure the gray bucket is empty at the end (or use the network to download missing blocks).
-			if block, err := node.Blockstore.Get(req.Context, c); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if nd, err := blockDecoder.DecodeNode(req.Context, block); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
-				ret.PinErrorMsg = err.Error()
-			} else if err := node.Pinning.Flush(req.Context); err != nil {
-				ret.PinErrorMsg = err.Error()
-			}
+			// if block, err := node.Blockstore.Get(req.Context, c); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// } else if nd, err := blockDecoder.DecodeNode(req.Context, block); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// } else if err := node.Pinning.Pin(req.Context, nd, true); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// } else if err := node.Pinning.Flush(req.Context); err != nil {
+			// 	ret.PinErrorMsg = err.Error()
+			// }
 
 			return res.Emit(&CarImportOutput{Root: &ret})
 		})
