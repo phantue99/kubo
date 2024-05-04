@@ -37,6 +37,7 @@ const (
 	apiKey              = "api-key"
 	uploaderEndpoint    = "uploader-endpoint"
 	redisConn           = "redis-conn"
+	amqpConnect         = "amqp-connect"
 )
 
 // nolint
@@ -75,6 +76,7 @@ environment variable:
 		cmds.StringOption(apiKey, "Configuration pinning service api key"),
 		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint"),
 		cmds.StringOption(redisConn, "Configuration redis connection"),
+		cmds.StringOption(amqpConnect, "Configuration amqp connection"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -138,20 +140,22 @@ environment variable:
 				fmt.Println("redisConn is not ok")
 			}
 			redisConns := strings.Split(redisConn, ",")
+			amqpConnect, _ := req.Options[amqpConnect].(string)
 
-			configPinningSerice := config.ConfigPinningSerice{
+			configPinningService := config.ConfigPinningService{
 				Uploader:           uploaderEndpoint,
 				PinningService:     pinningServiceEndpoint,
 				BlockserviceApiKey: blockserviceApiKey,
 				DedicatedGateway:   dGw,
 				RedisConns:         redisConns,
+				AmqpConnect:        amqpConnect,
 			}
 
-			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey, dGw, redisConns); err != nil {
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConns, amqpConnect); err != nil {
 				fmt.Printf("InitBlockService  %s\n", err)
 				return errors.New("InitBlockService")
 			}
-			conf, err = config.InitWithIdentity(identity, configPinningSerice)
+			conf, err = config.InitWithIdentity(identity, configPinningService)
 			if err != nil {
 				return err
 			}

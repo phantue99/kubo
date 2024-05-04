@@ -91,7 +91,11 @@ require (
 	google.golang.org/protobuf v1.31.0
 )
 
-require github.com/juju/ratelimit v1.0.2 // indirect
+require (
+	github.com/juju/ratelimit v1.0.2 // indirect
+	github.com/shopspring/decimal v1.4.0 // indirect
+	github.com/streadway/amqp v1.1.0 // indirect
+)
 
 require (
 	github.com/AndreasBriese/bbloom v0.0.0-20190825152654-46b345b51c96 // indirect
@@ -245,7 +249,7 @@ require (
 )
 
 replace (
-	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.0-20240422040204-382c3fb56630
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.0-20240504031046-59c572adfeb3
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
 )
 

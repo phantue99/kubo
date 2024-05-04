@@ -176,7 +176,7 @@ func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Hand
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Check if the path is follow the pattern /ipfs/<hash>
-		if cfg.ConfigPinningSerice.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
+		if cfg.ConfigPinningService.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
 			// Get the hash from the request URL
 			pathPattern := regexp.MustCompile(`/ipfs/([^/]+)`)
 
@@ -195,7 +195,7 @@ func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Hand
 				http.Error(w, err.Error(), http.StatusBadRequest)
 				return
 			}
-		} else if !cfg.ConfigPinningSerice.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
+		} else if !cfg.ConfigPinningService.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
 			ipLimiter := getLimiter(r.RemoteAddr, ipLimiters, 100)
 			if !ipLimiter.Allow() {
 				http.Error(w, "Too many requests from this IP", http.StatusTooManyRequests)
@@ -226,12 +226,12 @@ func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Hand
 }
 
 func getDedicatedGatewayAccess(hash string, cfg *config.Config) error {
-	apiUrl := fmt.Sprintf("%s/api/dedicatedGateways/%s", cfg.ConfigPinningSerice.PinningService, hash)
+	apiUrl := fmt.Sprintf("%s/api/dedicatedGateways/%s", cfg.ConfigPinningService.PinningService, hash)
 	req, err := http.NewRequest("GET", apiUrl, bytes.NewBuffer(nil))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
-	req.Header.Set("blockservice-API-Key", cfg.ConfigPinningSerice.BlockserviceApiKey)
+	req.Header.Set("blockservice-API-Key", cfg.ConfigPinningService.BlockserviceApiKey)
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := http.DefaultClient.Do(req)

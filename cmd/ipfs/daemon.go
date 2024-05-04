@@ -259,8 +259,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 			if err != nil {
 				return err
 			}
-			configPinningSerice := config.ConfigPinningSerice{}
-			conf, err = config.InitWithIdentity(identity, configPinningSerice)
+			configPinningService := config.ConfigPinningService{}
+			conf, err = config.InitWithIdentity(identity, configPinningService)
 			if err != nil {
 				return err
 			}
@@ -376,7 +376,13 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		return err
 	}
 
-	if err := blockservice.InitBlockService(cfg.ConfigPinningSerice.Uploader, cfg.ConfigPinningSerice.PinningService, cfg.ConfigPinningSerice.BlockserviceApiKey, cfg.ConfigPinningSerice.DedicatedGateway, cfg.ConfigPinningSerice.RedisConns); err != nil {
+	if err := blockservice.InitBlockService(
+		cfg.ConfigPinningService.Uploader,
+		cfg.ConfigPinningService.PinningService,
+		cfg.ConfigPinningService.DedicatedGateway,
+		cfg.ConfigPinningService.RedisConns,
+		cfg.ConfigPinningService.AmqpConnect,
+	); err != nil {
 		fmt.Printf("InitBlockService  %s\n", err)
 		return errors.New("InitBlockService")
 	}

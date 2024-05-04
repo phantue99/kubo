@@ -17,12 +17,12 @@ func Init(out io.Writer, nBitsForKeypair int) (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	configPinningSerice := ConfigPinningSerice{}
+	configPinningService := ConfigPinningService{}
 
-	return InitWithIdentity(identity, configPinningSerice)
+	return InitWithIdentity(identity, configPinningService)
 }
 
-func InitWithIdentity(identity Identity, configPinningSerice ConfigPinningSerice) (*Config, error) {
+func InitWithIdentity(identity Identity, configPinningService ConfigPinningService) (*Config, error) {
 	bootstrapPeers, err := DefaultBootstrapPeers()
 	if err != nil {
 		return nil, err
@@ -85,7 +85,7 @@ func InitWithIdentity(identity Identity, configPinningSerice ConfigPinningSerice
 			DownloadSources: []string{},
 			Keep:            "",
 		},
-		ConfigPinningSerice: configPinningSerice,
+		ConfigPinningService: configPinningService,
 	}
 
 	return conf, nil

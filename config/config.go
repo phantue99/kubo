@@ -38,7 +38,7 @@ type Config struct {
 	Pinning      Pinning
 
 	Internal Internal // experimental/unstable options
-	ConfigPinningSerice ConfigPinningSerice
+	ConfigPinningService ConfigPinningService
 }
 
 const (

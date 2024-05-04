@@ -1,9 +1,10 @@
 package config
 
-type ConfigPinningSerice struct {
+type ConfigPinningService struct {
 	Uploader           string
 	PinningService     string
 	BlockserviceApiKey string
 	DedicatedGateway   bool
-	RedisConns		 []string
+	RedisConns         []string
+	AmqpConnect        string
 }
