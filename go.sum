@@ -696,8 +696,8 @@ github.com/pbnjay/memory v0.0.0-20210728143218-7b4eea64cf58/go.mod h1:DXv8WO4yhM
 github.com/pelletier/go-toml v1.2.0/go.mod h1:5z9KED0ma1S8pY6P1sdut58dfprrGBbd/94hg7ilaic=
 github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9 h1:1/WtZae0yGtPq+TI6+Tv1WTxkukpXeMlviSxvL7SRgk=
 github.com/petar/GoLLRB v0.0.0-20210522233825-ae3b015fd3e9/go.mod h1:x3N5drFsm2uilKKuuYo6LdyD8vZAW55sH/9w+pbo1sw=
-github.com/phantue99/boxo v0.0.0-20240504031046-59c572adfeb3 h1:qd/HV5KNpPVIA88foOUyHcfl9RKQGKlVPx3WdVQlqKc=
-github.com/phantue99/boxo v0.0.0-20240504031046-59c572adfeb3/go.mod h1:cFgrUcbgKZhCAE5BM1GbClMDJukyTTxZWaXrpvZe2KI=
+github.com/phantue99/boxo v0.0.0-20240517035721-6653e6b45f84 h1:/YjC3qaMgmkUl1fCWU3R+LIrfKcZmBQ5jlGvvbqlFfI=
+github.com/phantue99/boxo v0.0.0-20240517035721-6653e6b45f84/go.mod h1:93RbhqvveN8XUAiXrms0kq/4nptfi7Bs3zSljaqfo5s=
 github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514 h1:YOIgb5mav4b+Uk08xFM3CvxvpeR0n/9yb/rSoGv8NXk=
 github.com/phantue99/go-ds-aiozfs v0.0.0-20230106110719-3cf2c875f9f4 h1:4905fXz/W3sZIfNskl7xl1GKa+wQ9I1/Mzda36rKLJY=
 github.com/phantue99/go-ds-aiozfs v0.0.0-20230106110719-3cf2c875f9f4/go.mod h1:g/+TmWADZhSMMMrmw94msTFUwHVXr3DnJ/lQHjRjf+Y=
