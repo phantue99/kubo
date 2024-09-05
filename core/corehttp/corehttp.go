@@ -190,9 +190,16 @@ func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Hand
 				http.Error(w, "Invalid hash", http.StatusBadRequest)
 				return
 			}
+
+			status, err := checkDmca(cid.String(), cfg)
+			if err != nil {
+				http.Error(w, err.Error(), status)
+				return
+			}
 			// Call the getDedicatedGatewayAccess function
-			if err := getDedicatedGatewayAccess(cid.Hash().HexString(), cfg); err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
+			status, err = getDedicatedGatewayAccess(cid.Hash().HexString(), cfg)
+			if err != nil {
+				http.Error(w, err.Error(), status)
 				return
 			}
 		} else if !cfg.ConfigPinningService.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
@@ -219,29 +226,69 @@ func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Hand
 				http.Error(w, "Too many requests for this CID", http.StatusTooManyRequests)
 				return
 			}
+
+			status, err := checkDmca(cid.String(), cfg)
+			if err != nil {
+				http.Error(w, err.Error(), status)
+				return
+			}
 		}
 
 		next.ServeHTTP(w, r)
 	})
 }
 
-func getDedicatedGatewayAccess(hash string, cfg *config.Config) error {
+func getDedicatedGatewayAccess(hash string, cfg *config.Config) (int, error) {
 	apiUrl := fmt.Sprintf("%s/api/dedicatedGateways/%s", cfg.ConfigPinningService.PinningService, hash)
 	req, err := http.NewRequest("GET", apiUrl, bytes.NewBuffer(nil))
 	if err != nil {
-		return fmt.Errorf("failed to create request: %w", err)
+		return http.StatusInternalServerError, fmt.Errorf("failed to create request: %w", err)
 	}
 	req.Header.Set("blockservice-API-Key", cfg.ConfigPinningService.BlockserviceApiKey)
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := http.DefaultClient.Do(req)
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	resp, err := client.Do(req)
 	if err != nil {
-		return errors.New("Error while calling dedicated gateway API")
+		return http.StatusInternalServerError, errors.New("Error while calling dedicated gateway API")
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != 200 {
-		return errors.New("No users have subscribed to this hash yet.")
+		return resp.StatusCode, errors.New("No users have subscribed to this hash yet.")
 	}
-	return nil
+	return http.StatusOK, nil
+}
+
+func checkDmca(hash string, cfg *config.Config) (int, error) {
+	apiUrl := fmt.Sprintf("%s/api/dmca/%s", cfg.ConfigPinningService.PinningService, hash)
+	req, err := http.NewRequest("GET", apiUrl, bytes.NewBuffer(nil))
+	if err != nil {
+		return http.StatusInternalServerError, fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("blockservice-API-Key", cfg.ConfigPinningService.BlockserviceApiKey)
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{
+		Timeout: 15 * time.Second,
+	}
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return http.StatusInternalServerError, errors.New("Error while calling DMCA API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode == http.StatusGone {
+		return http.StatusGone, errors.New("The content that you requested has been blocked because of legal, abuse, malware or security reasons. Please contact support@w3ipfs.storage for more information")
+	}
+
+	if resp.StatusCode != 200 {
+		return resp.StatusCode, errors.New("Something went wrong")
+	}
+
+	return http.StatusOK, nil
 }
