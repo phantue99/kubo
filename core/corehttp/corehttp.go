@@ -283,7 +283,7 @@ func checkDmca(hash string, cfg *config.Config) (int, error) {
 	defer resp.Body.Close()
 
 	if resp.StatusCode == http.StatusGone {
-		return http.StatusGone, errors.New("The content that you requested has been blocked because of legal, abuse, malware or security reasons. Please contact support@w3ipfs.storage for more information")
+		return http.StatusGone, errors.New("The content that you requested has been blocked because of legal, abuse, malware or security reasons. Please contact support@aiozpin.network for more information")
 	}
 
 	if resp.StatusCode != 200 {
