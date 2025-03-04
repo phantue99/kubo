@@ -62,6 +62,14 @@ endif
 build: $(TGT_BIN)
 .PHONY: build
 
+update-ipfs-production: build
+	ssh root@167.172.4.178  mv /mnt/w3ipfs/pinning-service/ipfs /mnt/w3ipfs/pinning-service/ipfs.bk`date +%Y%m%d%H`
+	scp ./cmd/ipfs/ipfs root@167.172.4.178:/mnt/w3ipfs/pinning-service
+
+update-ipfs-staging:
+	ssh -i ~/.ssh/hub-uploader-s3.pem aioz@35.213.175.115 mv /mnt/hub_db/w3ipfs_stg/ipfs /mnt/hub_db/w3ipfs_stg/ipfs.bk`date +%Y%m%d%H`
+	scp -i ~/.ssh/hub-uploader-s3.pem ./cmd/ipfs/ipfs aioz@35.213.175.115:/mnt/hub_db/w3ipfs_stg
+
 clean:
 	rm -rf $(CLEAN)
 .PHONY: clean

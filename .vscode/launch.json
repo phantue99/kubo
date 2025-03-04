@@ -9,7 +9,7 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "./phantue/kubo/cmd/ipfs",
+            "program": "./cmd/ipfs",
             "cwd": "./",
             "args": ["daemon"]
         },
@@ -18,9 +18,9 @@
             "type": "go",
             "request": "launch",
             "mode": "auto",
-            "program": "./phantue/kubo/cmd/ipfs",
+            "program": "./cmd/ipfs",
             "cwd": "./",
-            "args": ["init", "--uploader-endpoint=http://35.213.175.115:38080", "--pinning-service=http://0.0.0.0:8000", "--api-key=TXloRFFBUnVoRHNOVlBodEZxTXdNSkJYWXlEdWROM2VvQXNWSnZpTEFFZUNDcVIwOFUzZW9QV3hsMW9rOFA2Wg==", "--dedicated-gateway=false", "--redis-conn=10.0.0.185:7001,10.0.0.185:7002,10.0.0.185:7003,10.0.0.185:7004,10.0.0.185:7005,10.0.0.185:7006"]
+            "args": ["init", "--uploader-endpoint=http://139.59.219.239:48081", "--pinning-service=http://0.0.0.0:8000", "--api-key=TXloRFFBUnVoRHNOVlBodEZxTXdNSkJYWXlEdWROM2VvQXNWSnZpTEFFZUNDcVIwOFUzZW9QV3hsMW9rOFA2Wg==", "--dedicated-gateway=false", "--redis-conn=0.0.0.0:6380", "--amqp-connect=amqp://rAbb1tMP2User:KxBzFklzEMZP13@10.0.0.185:5672/"]
         },
     ]
 }

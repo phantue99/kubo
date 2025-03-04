@@ -5,6 +5,6 @@ type ConfigPinningService struct {
 	PinningService     string
 	BlockserviceApiKey string
 	DedicatedGateway   bool
-	RedisConns         []string
+	RedisConn         string
 	AmqpConnect        string
 }

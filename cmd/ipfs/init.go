@@ -139,7 +139,6 @@ environment variable:
 			if !ok {
 				fmt.Println("redisConn is not ok")
 			}
-			redisConns := strings.Split(redisConn, ",")
 			amqpConnect, _ := req.Options[amqpConnect].(string)
 
 			configPinningService := config.ConfigPinningService{
@@ -147,11 +146,11 @@ environment variable:
 				PinningService:     pinningServiceEndpoint,
 				BlockserviceApiKey: blockserviceApiKey,
 				DedicatedGateway:   dGw,
-				RedisConns:         redisConns,
+				RedisConn:          redisConn,
 				AmqpConnect:        amqpConnect,
 			}
 
-			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConns, amqpConnect); err != nil {
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect); err != nil {
 				fmt.Printf("InitBlockService  %s\n", err)
 				return errors.New("InitBlockService")
 			}

@@ -380,7 +380,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		cfg.ConfigPinningService.Uploader,
 		cfg.ConfigPinningService.PinningService,
 		cfg.ConfigPinningService.DedicatedGateway,
-		cfg.ConfigPinningService.RedisConns,
+		cfg.ConfigPinningService.RedisConn,
 		cfg.ConfigPinningService.AmqpConnect,
 	); err != nil {
 		fmt.Printf("InitBlockService  %s\n", err)
