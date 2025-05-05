@@ -26,18 +26,20 @@ import (
 )
 
 const (
-	algorithmDefault    = options.Ed25519Key
-	algorithmOptionName = "algorithm"
-	bitsOptionName      = "bits"
-	emptyRepoDefault    = true
-	emptyRepoOptionName = "empty-repo"
-	dedicatedGateway    = "dedicated-gateway"
-	profileOptionName   = "profile"
-	psEp                = "pinning-service"
-	apiKey              = "api-key"
-	uploaderEndpoint    = "uploader-endpoint"
-	redisConn           = "redis-conn"
-	amqpConnect         = "amqp-connect"
+	algorithmDefault     = options.Ed25519Key
+	algorithmOptionName  = "algorithm"
+	bitsOptionName       = "bits"
+	emptyRepoDefault     = true
+	emptyRepoOptionName  = "empty-repo"
+	dedicatedGateway     = "dedicated-gateway"
+	profileOptionName    = "profile"
+	psEp                 = "pinning-service"
+	apiKey               = "api-key"
+	uploaderEndpoint     = "uploader-endpoint"
+	redisConn            = "redis-conn"
+	amqpConnect          = "amqp-connect"
+	encryptBlockKey      = "encrypt-block-key"
+	encryptedBlockPrefix = "encrypted-block-prefix"
 )
 
 // nolint
@@ -77,6 +79,8 @@ environment variable:
 		cmds.StringOption(uploaderEndpoint, "Configuration uploader endpoint"),
 		cmds.StringOption(redisConn, "Configuration redis connection"),
 		cmds.StringOption(amqpConnect, "Configuration amqp connection"),
+		cmds.StringOption(encryptBlockKey, "Configuration encryption block key"),
+		cmds.StringOption(encryptedBlockPrefix, "Configuration encryption block prefix"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -142,15 +146,17 @@ environment variable:
 			amqpConnect, _ := req.Options[amqpConnect].(string)
 
 			configPinningService := config.ConfigPinningService{
-				Uploader:           uploaderEndpoint,
-				PinningService:     pinningServiceEndpoint,
-				BlockserviceApiKey: blockserviceApiKey,
-				DedicatedGateway:   dGw,
-				RedisConn:          redisConn,
-				AmqpConnect:        amqpConnect,
+				Uploader:             uploaderEndpoint,
+				PinningService:       pinningServiceEndpoint,
+				BlockserviceApiKey:   blockserviceApiKey,
+				DedicatedGateway:     dGw,
+				RedisConn:            redisConn,
+				AmqpConnect:          amqpConnect,
+				BlockEncryptionKey:   encryptBlockKey,
+				EncryptedBlockPrefix: encryptedBlockPrefix,
 			}
 
-			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect); err != nil {
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect, encryptBlockKey, encryptedBlockPrefix); err != nil {
 				fmt.Printf("InitBlockService  %s\n", err)
 				return errors.New("InitBlockService")
 			}
