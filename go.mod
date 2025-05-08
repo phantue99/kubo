@@ -92,9 +92,12 @@ require (
 )
 
 require (
+	github.com/chai2010/webp v1.4.0 // indirect
+	github.com/disintegration/gift v1.2.1 // indirect
 	github.com/juju/ratelimit v1.0.2 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/streadway/amqp v1.1.0 // indirect
+	golang.org/x/image v0.26.0 // indirect
 )
 
 require (
@@ -249,7 +252,7 @@ require (
 )
 
 replace (
-	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.0-20250505045727-9ba70ff02cfb
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.0-20250507104108-b18e15da107c
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
 )
 

@@ -144,6 +144,8 @@ environment variable:
 				fmt.Println("redisConn is not ok")
 			}
 			amqpConnect, _ := req.Options[amqpConnect].(string)
+			encryptKey, _ := req.Options[encryptBlockKey].(string)
+			blockPrefix, _ := req.Options[encryptedBlockPrefix].(string)
 
 			configPinningService := config.ConfigPinningService{
 				Uploader:             uploaderEndpoint,
@@ -152,11 +154,11 @@ environment variable:
 				DedicatedGateway:     dGw,
 				RedisConn:            redisConn,
 				AmqpConnect:          amqpConnect,
-				BlockEncryptionKey:   encryptBlockKey,
-				EncryptedBlockPrefix: encryptedBlockPrefix,
+				BlockEncryptionKey:   encryptKey,
+				EncryptedBlockPrefix: blockPrefix,
 			}
 
-			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect, encryptBlockKey, encryptedBlockPrefix); err != nil {
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect, encryptKey, blockPrefix); err != nil {
 				fmt.Printf("InitBlockService  %s\n", err)
 				return errors.New("InitBlockService")
 			}
