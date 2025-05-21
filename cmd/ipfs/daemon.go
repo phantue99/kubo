@@ -382,6 +382,8 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 		cfg.ConfigPinningService.DedicatedGateway,
 		cfg.ConfigPinningService.RedisConn,
 		cfg.ConfigPinningService.AmqpConnect,
+		cfg.ConfigPinningService.BlockEncryptionKey,
+		cfg.ConfigPinningService.EncryptedBlockPrefix,
 	); err != nil {
 		fmt.Printf("InitBlockService  %s\n", err)
 		return errors.New("InitBlockService")
