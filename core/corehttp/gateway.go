@@ -42,7 +42,14 @@ func GatewayOption(paths ...string) ServeOption {
 			return nil, err
 		}
 
-		gHandler := gateway.NewHandler(config, backend, repoConfig.ConfigPinningService.DedicatedGateway)
+		gHandler := gateway.NewHandler(
+			config,
+			backend,
+			repoConfig.ConfigPinningService.DedicatedGateway,
+			repoConfig.ConfigPinningService.IpfsDomain,
+			repoConfig.ConfigPinningService.PinningService,
+			repoConfig.ConfigPinningService.BlockserviceApiKey,
+		)
 		handler := otelhttp.NewHandler(gHandler, "Gateway")
 
 		for _, p := range paths {
@@ -101,7 +108,14 @@ func Libp2pGatewayOption() ServeOption {
 			return nil, err
 		}
 
-		gHandler := gateway.NewHandler(gwConfig, &offlineGatewayErrWrapper{gwimpl: backend}, repoConfig.ConfigPinningService.DedicatedGateway)
+		gHandler := gateway.NewHandler(
+			gwConfig,
+			&offlineGatewayErrWrapper{gwimpl: backend},
+			repoConfig.ConfigPinningService.DedicatedGateway,
+			repoConfig.ConfigPinningService.IpfsDomain,
+			repoConfig.ConfigPinningService.PinningService,
+			repoConfig.ConfigPinningService.BlockserviceApiKey,
+		)
 		handler := otelhttp.NewHandler(gHandler, "Libp2p-Gateway")
 
 		mux.Handle("/ipfs/", handler)
