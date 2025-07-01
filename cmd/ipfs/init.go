@@ -40,6 +40,7 @@ const (
 	amqpConnect          = "amqp-connect"
 	encryptBlockKey      = "encrypt-block-key"
 	encryptedBlockPrefix = "encrypted-block-prefix"
+	ipfsDomain           = "ipfs-domain"
 )
 
 // nolint
@@ -81,6 +82,7 @@ environment variable:
 		cmds.StringOption(amqpConnect, "Configuration amqp connection"),
 		cmds.StringOption(encryptBlockKey, "Configuration encryption block key"),
 		cmds.StringOption(encryptedBlockPrefix, "Configuration encryption block prefix"),
+		cmds.StringOption(ipfsDomain, "Configuration IPFS domain"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -146,6 +148,7 @@ environment variable:
 			amqpConnect, _ := req.Options[amqpConnect].(string)
 			encryptKey, _ := req.Options[encryptBlockKey].(string)
 			blockPrefix, _ := req.Options[encryptedBlockPrefix].(string)
+			ipfsDomain, _ := req.Options[ipfsDomain].(string)
 
 			configPinningService := config.ConfigPinningService{
 				Uploader:             uploaderEndpoint,
@@ -156,6 +159,7 @@ environment variable:
 				AmqpConnect:          amqpConnect,
 				BlockEncryptionKey:   encryptKey,
 				EncryptedBlockPrefix: blockPrefix,
+				IpfsDomain:           ipfsDomain,
 			}
 
 			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect, encryptKey, blockPrefix); err != nil {

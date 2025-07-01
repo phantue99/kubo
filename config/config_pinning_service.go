@@ -9,4 +9,5 @@ type ConfigPinningService struct {
 	AmqpConnect          string
 	BlockEncryptionKey   string
 	EncryptedBlockPrefix string
+	IpfsDomain           string
 }
