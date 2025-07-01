@@ -49,6 +49,7 @@ func GatewayOption(paths ...string) ServeOption {
 			repoConfig.ConfigPinningService.IpfsDomain,
 			repoConfig.ConfigPinningService.PinningService,
 			repoConfig.ConfigPinningService.BlockserviceApiKey,
+			repoConfig.ConfigPinningService.AmqpConnect,
 		)
 		handler := otelhttp.NewHandler(gHandler, "Gateway")
 
@@ -115,6 +116,7 @@ func Libp2pGatewayOption() ServeOption {
 			repoConfig.ConfigPinningService.IpfsDomain,
 			repoConfig.ConfigPinningService.PinningService,
 			repoConfig.ConfigPinningService.BlockserviceApiKey,
+			repoConfig.ConfigPinningService.AmqpConnect,
 		)
 		handler := otelhttp.NewHandler(gHandler, "Libp2p-Gateway")
 
