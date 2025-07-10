@@ -950,7 +950,6 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 	if err != nil {
 		return nil, err
 	}
-	middlewareHandler := corehttp.DedicatedGatewayMiddleware(handler, cfg)
 
 	h := p2phttp.Host{
 		StreamHost: node.PeerHost,
@@ -962,7 +961,7 @@ func serveTrustlessGatewayOverLibp2p(cctx *oldcmds.Context) (<-chan error, error
 
 	h.WellKnownHandler.AddProtocolMeta(gatewayProtocolID, p2phttp.ProtocolMeta{Path: "/"})
 	h.ServeMux = http.NewServeMux()
-	h.ServeMux.Handle("/", middlewareHandler)
+	h.ServeMux.Handle("/", handler)
 
 	errc := make(chan error, 1)
 	go func() {

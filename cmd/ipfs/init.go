@@ -41,6 +41,8 @@ const (
 	encryptBlockKey      = "encrypt-block-key"
 	encryptedBlockPrefix = "encrypted-block-prefix"
 	ipfsDomain           = "ipfs-domain"
+	sslCertPath          = "ssl-cert-path"
+	sslKeyPath           = "ssl-key-path"
 )
 
 // nolint
@@ -83,6 +85,8 @@ environment variable:
 		cmds.StringOption(encryptBlockKey, "Configuration encryption block key"),
 		cmds.StringOption(encryptedBlockPrefix, "Configuration encryption block prefix"),
 		cmds.StringOption(ipfsDomain, "Configuration IPFS domain"),
+		cmds.StringOption(sslCertPath, "Configuration SSL certificate path"),
+		cmds.StringOption(sslKeyPath, "Configuration SSL private key path"),
 
 		// TODO need to decide whether to expose the override as a file or a
 		// directory. That is: should we allow the user to also specify the
@@ -149,6 +153,8 @@ environment variable:
 			encryptKey, _ := req.Options[encryptBlockKey].(string)
 			blockPrefix, _ := req.Options[encryptedBlockPrefix].(string)
 			ipfsDomain, _ := req.Options[ipfsDomain].(string)
+			sslCert, _ := req.Options[sslCertPath].(string)
+			sslKey, _ := req.Options[sslKeyPath].(string)
 
 			configPinningService := config.ConfigPinningService{
 				Uploader:             uploaderEndpoint,
@@ -160,6 +166,8 @@ environment variable:
 				BlockEncryptionKey:   encryptKey,
 				EncryptedBlockPrefix: blockPrefix,
 				IpfsDomain:           ipfsDomain,
+				SslCertPath:          sslCert,
+				SslKeyPath:           sslKey,
 			}
 
 			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect, encryptKey, blockPrefix); err != nil {

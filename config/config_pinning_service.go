@@ -10,4 +10,6 @@ type ConfigPinningService struct {
 	BlockEncryptionKey   string
 	EncryptedBlockPrefix string
 	IpfsDomain           string
+	SslCertPath          string
+	SslKeyPath           string
 }

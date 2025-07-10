@@ -5,22 +5,13 @@ high-level HTTP interfaces to IPFS.
 package corehttp
 
 import (
-	"bytes"
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
-	"regexp"
-	"strings"
-	"sync"
 	"time"
 
-	"golang.org/x/time/rate"
-
-	"github.com/ipfs/go-cid"
 	logging "github.com/ipfs/go-log"
-	config "github.com/ipfs/kubo/config"
 	core "github.com/ipfs/kubo/core"
 	"github.com/jbenet/goprocess"
 	periodicproc "github.com/jbenet/goprocess/periodic"
@@ -99,12 +90,6 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	if err != nil {
 		return err
 	}
-	cfg, err := node.Repo.Config()
-	if err != nil {
-		return err
-	}
-
-	middlewareHandler := DedicatedGatewayMiddleware(handler, cfg)
 
 	addr, err := manet.FromNetAddr(lis.Addr())
 	if err != nil {
@@ -118,7 +103,7 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 	}
 
 	server := &http.Server{
-		Handler: middlewareHandler,
+		Handler: handler,
 	}
 
 	var serverError error
@@ -153,142 +138,4 @@ func Serve(node *core.IpfsNode, lis net.Listener, options ...ServeOption) error 
 
 	log.Infof("server at %s terminated", addr)
 	return serverError
-}
-
-var ipLimiters = make(map[string]*rate.Limiter)
-var cidLimiters = make(map[string]*rate.Limiter)
-var mtx sync.Mutex
-
-func getLimiter(limit string, limitMap map[string]*rate.Limiter, rps float64) *rate.Limiter {
-	mtx.Lock()
-	defer mtx.Unlock()
-
-	limiter, exists := limitMap[limit]
-	if !exists {
-		limiter = rate.NewLimiter(rate.Every(time.Minute), int(rps))
-		limitMap[limit] = limiter
-	}
-
-	return limiter
-}
-
-func DedicatedGatewayMiddleware(next http.Handler, cfg *config.Config) http.Handler {
-
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Check if the path is follow the pattern /ipfs/<hash>
-		if cfg.ConfigPinningService.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
-			// Get the hash from the request URL
-			pathPattern := regexp.MustCompile(`/ipfs/([^/]+)`)
-
-			matches := pathPattern.FindStringSubmatch(r.URL.Path)
-			if matches == nil || len(matches) < 2 {
-				http.Error(w, "Invalid path", http.StatusBadRequest)
-				return
-			}
-			cid, err := cid.Parse(matches[1])
-			if err != nil {
-				http.Error(w, "Invalid hash", http.StatusBadRequest)
-				return
-			}
-
-			status, err := checkDmca(cid.String(), cfg)
-			if err != nil {
-				http.Error(w, err.Error(), status)
-				return
-			}
-			// Call the getDedicatedGatewayAccess function
-			status, err = getDedicatedGatewayAccess(cid.Hash().HexString(), cfg)
-			if err != nil {
-				http.Error(w, err.Error(), status)
-				return
-			}
-		} else if !cfg.ConfigPinningService.DedicatedGateway && strings.HasPrefix(r.URL.Path, "/ipfs/") {
-			ipLimiter := getLimiter(r.RemoteAddr, ipLimiters, 100)
-			if !ipLimiter.Allow() {
-				http.Error(w, "Too many requests from this IP", http.StatusTooManyRequests)
-				return
-			}
-			pathPattern := regexp.MustCompile(`/ipfs/([^/]+)`)
-
-			matches := pathPattern.FindStringSubmatch(r.URL.Path)
-			if matches == nil || len(matches) < 2 {
-				http.Error(w, "Invalid path", http.StatusBadRequest)
-				return
-			}
-			cid, err := cid.Parse(matches[1])
-			if err != nil {
-				http.Error(w, "Invalid hash", http.StatusBadRequest)
-				return
-			}
-
-			cidLimiter := getLimiter(cid.String(), cidLimiters, 15)
-			if !cidLimiter.Allow() {
-				http.Error(w, "Too many requests for this CID", http.StatusTooManyRequests)
-				return
-			}
-
-			status, err := checkDmca(cid.String(), cfg)
-			if err != nil {
-				http.Error(w, err.Error(), status)
-				return
-			}
-		}
-
-		next.ServeHTTP(w, r)
-	})
-}
-
-func getDedicatedGatewayAccess(hash string, cfg *config.Config) (int, error) {
-	apiUrl := fmt.Sprintf("%s/api/dedicatedGateways/%s", cfg.ConfigPinningService.PinningService, hash)
-	req, err := http.NewRequest("GET", apiUrl, bytes.NewBuffer(nil))
-	if err != nil {
-		return http.StatusInternalServerError, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("blockservice-API-Key", cfg.ConfigPinningService.BlockserviceApiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{
-		Timeout: 15 * time.Second,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return http.StatusInternalServerError, errors.New("Error while calling dedicated gateway API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != 200 {
-		return resp.StatusCode, errors.New("No users have subscribed to this hash yet.")
-	}
-	return http.StatusOK, nil
-}
-
-func checkDmca(hash string, cfg *config.Config) (int, error) {
-	apiUrl := fmt.Sprintf("%s/api/dmca/%s", cfg.ConfigPinningService.PinningService, hash)
-	req, err := http.NewRequest("GET", apiUrl, bytes.NewBuffer(nil))
-	if err != nil {
-		return http.StatusInternalServerError, fmt.Errorf("failed to create request: %w", err)
-	}
-	req.Header.Set("blockservice-API-Key", cfg.ConfigPinningService.BlockserviceApiKey)
-	req.Header.Set("Content-Type", "application/json")
-
-	client := &http.Client{
-		Timeout: 15 * time.Second,
-	}
-
-	resp, err := client.Do(req)
-	if err != nil {
-		return http.StatusInternalServerError, errors.New("Error while calling DMCA API")
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode == http.StatusGone {
-		return http.StatusGone, errors.New("The content that you requested has been blocked because of legal, abuse, malware or security reasons. Please contact support@aiozpin.network for more information")
-	}
-
-	if resp.StatusCode != 200 {
-		return resp.StatusCode, errors.New("Something went wrong")
-	}
-
-	return http.StatusOK, nil
 }

@@ -240,7 +240,7 @@ require (
 	golang.org/x/oauth2 v0.8.0 // indirect
 	golang.org/x/term v0.20.0 // indirect
 	golang.org/x/text v0.25.0 // indirect
-	golang.org/x/time v0.5.0
+	golang.org/x/time v0.5.0 // indirect
 	golang.org/x/tools v0.21.1-0.20240508182429-e35e4ccd0d2d // indirect
 	golang.org/x/xerrors v0.0.0-20220907171357-04be3eba64a2 // indirect
 	gonum.org/v1/gonum v0.13.0 // indirect
@@ -254,9 +254,9 @@ require (
 )
 
 replace (
-	github.com/ipfs/boxo => github.com/phantue99/boxo v0.2.12
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.2.22
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
-	github.com/lamgiahungaioz/aioz-image-optimizer => 10.0.0.50/hung.gia.lam/aioz-image-optimizer v0.2.0
+	github.com/lamgiahungaioz/aioz-image-optimizer => 10.0.0.50/hung.gia.lam/aioz-image-optimizer v0.2.2
 )
 
 go 1.23.4
