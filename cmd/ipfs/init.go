@@ -170,7 +170,7 @@ environment variable:
 				SslKeyPath:           sslKey,
 			}
 
-			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, redisConn, amqpConnect, encryptKey, blockPrefix); err != nil {
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, blockserviceApiKey, amqpConnect, encryptKey, blockPrefix); err != nil {
 				fmt.Printf("InitBlockService  %s\n", err)
 				return errors.New("InitBlockService")
 			}
