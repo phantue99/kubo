@@ -92,10 +92,14 @@ require (
 )
 
 require (
+	github.com/chai2010/webp v1.4.0 // indirect
+	github.com/disintegration/gift v1.2.1 // indirect
+	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/juju/ratelimit v1.0.2 // indirect
-	github.com/lamgiahungaioz/aioz-image-optimizer v0.0.5 // indirect
+	github.com/lamgiahungaioz/aioz-image-optimizer v0.0.7 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/streadway/amqp v1.1.0 // indirect
+	golang.org/x/image v0.27.0 // indirect
 )
 
 require (
@@ -250,8 +254,9 @@ require (
 )
 
 replace (
-	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.13
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.16-0.20250723072008-2ecb3e159fd9
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
+	github.com/lamgiahungaioz/aioz-image-optimizer => 10.0.0.50/hung.gia.lam/aioz-image-optimizer v0.0.4
 )
 
 go 1.23.4
