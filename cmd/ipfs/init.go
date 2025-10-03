@@ -144,7 +144,6 @@ environment variable:
 			uploaderEndpoint, _ := req.Options[uploaderEndpoint].(string)
 			pinningServiceEndpoint, _ := req.Options[psEp].(string)
 			blockserviceApiKey, _ := req.Options[apiKey].(string)
-			dGw, _ := req.Options[dedicatedGateway].(bool)
 			redisConn, ok := req.Options[redisConn].(string)
 			if !ok {
 				fmt.Println("redisConn is not ok")
@@ -160,7 +159,6 @@ environment variable:
 				Uploader:             uploaderEndpoint,
 				PinningService:       pinningServiceEndpoint,
 				BlockserviceApiKey:   blockserviceApiKey,
-				DedicatedGateway:     dGw,
 				RedisConn:            redisConn,
 				AmqpConnect:          amqpConnect,
 				BlockEncryptionKey:   encryptKey,
@@ -170,7 +168,7 @@ environment variable:
 				SslKeyPath:           sslKey,
 			}
 
-			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, dGw, blockserviceApiKey, amqpConnect, encryptKey, blockPrefix); err != nil {
+			if err := blockservice.InitBlockService(uploaderEndpoint, pinningServiceEndpoint, blockserviceApiKey, encryptKey, blockPrefix); err != nil {
 				fmt.Printf("InitBlockService  %s\n", err)
 				return errors.New("InitBlockService")
 			}
