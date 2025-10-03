@@ -252,7 +252,7 @@ require (
 )
 
 replace (
-	github.com/ipfs/boxo => github.com/phantue99/boxo v0.2.28
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.2.29
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
 	github.com/lamgiahungaioz/aioz-image-optimizer => 10.0.0.50/hung.gia.lam/aioz-image-optimizer v0.2.2
 )

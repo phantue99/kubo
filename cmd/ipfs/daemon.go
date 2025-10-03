@@ -379,9 +379,7 @@ func daemonFunc(req *cmds.Request, re cmds.ResponseEmitter, env cmds.Environment
 	if err := blockservice.InitBlockService(
 		cfg.ConfigPinningService.Uploader,
 		cfg.ConfigPinningService.PinningService,
-		cfg.ConfigPinningService.DedicatedGateway,
 		cfg.ConfigPinningService.BlockserviceApiKey,
-		cfg.ConfigPinningService.AmqpConnect,
 		cfg.ConfigPinningService.BlockEncryptionKey,
 		cfg.ConfigPinningService.EncryptedBlockPrefix,
 	); err != nil {

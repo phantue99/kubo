@@ -45,7 +45,6 @@ func GatewayOption(paths ...string) ServeOption {
 		gHandler := gateway.NewHandler(
 			config,
 			backend,
-			repoConfig.ConfigPinningService.DedicatedGateway,
 			repoConfig.ConfigPinningService.IpfsDomain,
 			repoConfig.ConfigPinningService.PinningService,
 			repoConfig.ConfigPinningService.BlockserviceApiKey,
@@ -112,7 +111,6 @@ func Libp2pGatewayOption() ServeOption {
 		gHandler := gateway.NewHandler(
 			gwConfig,
 			&offlineGatewayErrWrapper{gwimpl: backend},
-			repoConfig.ConfigPinningService.DedicatedGateway,
 			repoConfig.ConfigPinningService.IpfsDomain,
 			repoConfig.ConfigPinningService.PinningService,
 			repoConfig.ConfigPinningService.BlockserviceApiKey,
