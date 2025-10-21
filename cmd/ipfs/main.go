@@ -32,6 +32,7 @@ import (
 	"github.com/ipfs/kubo/repo"
 	"github.com/ipfs/kubo/repo/fsrepo"
 	"github.com/ipfs/kubo/tracing"
+	aiozimageoptimizer "github.com/lamgiahungaioz/aioz-image-optimizer"
 	ma "github.com/multiformats/go-multiaddr"
 	madns "github.com/multiformats/go-multiaddr-dns"
 	manet "github.com/multiformats/go-multiaddr/net"
@@ -81,6 +82,8 @@ func loadPlugins(repoPath string) (*loader.PluginLoader, error) {
 // - output the response
 // - if anything fails, print error, maybe with help.
 func main() {
+	aiozimageoptimizer.SetExiftoolBinPath("/usr/bin/exiftool")
+	aiozimageoptimizer.SetFfmpegBinPath("/usr/bin/ffmpeg")
 	os.Exit(mainRet())
 }
 
