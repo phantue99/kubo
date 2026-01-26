@@ -44,6 +44,7 @@ require (
 	github.com/jbenet/go-temp-err-catcher v0.1.0
 	github.com/jbenet/goprocess v0.1.4
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/lamgiahungaioz/aioz-image-optimizer v0.0.5
 	github.com/libp2p/go-doh-resolver v0.4.0
 	github.com/libp2p/go-libp2p v0.31.0
 	github.com/libp2p/go-libp2p-http v0.5.0
@@ -96,7 +97,6 @@ require (
 	github.com/disintegration/gift v1.2.1 // indirect
 	github.com/disintegration/imaging v1.6.2 // indirect
 	github.com/juju/ratelimit v1.0.2 // indirect
-	github.com/lamgiahungaioz/aioz-image-optimizer v0.0.5 // indirect
 	github.com/shopspring/decimal v1.4.0 // indirect
 	github.com/streadway/amqp v1.1.0 // indirect
 	golang.org/x/image v0.27.0 // indirect
@@ -254,7 +254,7 @@ require (
 )
 
 replace (
-	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.14-0.20251021040632-9767a578993d
+	github.com/ipfs/boxo => github.com/phantue99/boxo v0.0.14-0.20260126030523-780247627534
 	github.com/ipfs/go-bitswap => github.com/phantue99/go-bitswap v0.0.0-20230106094438-d1008f58c514
 	github.com/lamgiahungaioz/aioz-image-optimizer => 10.0.0.50/hung.gia.lam/aioz-image-optimizer v0.2.2
 )
